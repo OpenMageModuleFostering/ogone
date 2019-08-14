@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/Ogone",
+    "type": "magento-module",
+    "license": "OSL3",
+    "homepage": "",
+    "description": "Ingenico Payment services",
+    "authors": [
+    {
+        "name": "Michael L\u00fchr",
+        "email": "michael.luehr@netresearch.de"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
