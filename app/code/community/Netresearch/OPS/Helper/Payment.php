@@ -441,11 +441,11 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         try {
             Mage::register('ops_auto_void', true); //Set this session value to true to allow cancel
-
+            $this->cancelInvoices($order);
             $order->cancel();
             $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, $status, $comment);
             $order->save();
-            $this->cancelInvoices($order);
+
             try {
                 $this->setPaymentTransactionInformation($order->getPayment(), $params, 'cancel');
             } catch (Exception $e) {
@@ -471,6 +471,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         try {
             Mage::register('ops_auto_void', true); //Set this session value to true to allow cancel
+            $this->cancelInvoices($order);
             $order->cancel();
             $order->setState(
                 Mage_Sales_Model_Order::STATE_CANCELED,
@@ -482,7 +483,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 )
             );
             $order->save();
-            $this->cancelInvoices($order);
+
             $this->setPaymentTransactionInformation($order->getPayment(), $params, 'decline');
         } catch (Exception $e) {
             $this->_getCheckout()->addError(Mage::helper('ops')->__('Order can not be canceled for system reason.'));
@@ -534,7 +535,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 $this->_prepareCCInfo($order, $params);
                 $order->getPayment()->setLastTransId($params['PAYID']);
                 //to send new order email only when state is pending payment
-                if ($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
+                if (!$order->getEmailSent() != 1
+                    && $order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+                ) {
                     $order->sendNewOrderEmail();
 
                 }
@@ -606,8 +609,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 Mage::helper('ops')->__('Authorization waiting from Ingenico Payment Services')
             );
             $order->save();
-        } elseif ($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
-            || $instantCapture
+        } elseif (($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
+            || $instantCapture)
+            && !$this->isPaypalSpecialStatus($order->getPayment()->getMethodInstance(), $status)
         ) {
             if ($status == Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED) {
                 if ($order->getStatus() != Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
@@ -664,7 +668,11 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 $this->setInvoicesToPaid($order);
                 $order->getPayment()->getAuthorizationTransaction()->setIsClosed(true)->save();
                 $order->getPayment()->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE, $order->getPayment())->setIsClosed(true)->save();
-                $order->sendNewOrderEmail();
+
+                if($order->getEmailSent() != 1) {
+                    $order->sendNewOrderEmail();
+                }
+
                 $order->save();
             }
             if ($this->isInlinePayment($order->getPayment()) && Mage::getModel('ops/config')->getSendInvoice() && Mage::getModel('ops/config')->getPaymentAction($order->getStoreId()) === Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE_CAPTURE) {
@@ -741,19 +749,34 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 $order->sendNewOrderEmail();
             }
 
+            if(!$this->isPaypalSpecialStatus($order->getPayment()->getMethodInstance(), $status)) {
 
-
-            $payId = $params['PAYID'];
-            $order->setState(
-                Mage_Sales_Model_Order::STATE_PROCESSING,
-                Mage_Sales_Model_Order::STATE_PROCESSING,
-                Mage::helper('ops')->__(
-                    'Processed by Ingenico Payment Services. Payment ID: %s. Ingenico Payment Services status: %s.', $payId,
-                    Mage::helper('ops')->getStatusText($status)
-                )
-            );
+                $payId = $params['PAYID'];
+                $order->setState(
+                    Mage_Sales_Model_Order::STATE_PROCESSING,
+                    Mage_Sales_Model_Order::STATE_PROCESSING,
+                    Mage::helper('ops')->__(
+                        'Processed by Ingenico Payment Services. Payment ID: %s. Ingenico Payment Services status: %s.', $payId,
+                        Mage::helper('ops')->getStatusText($status)
+                    )
+                );
+            }
         }
         $order->save();
+    }
+
+    /**
+     * Special status handling for Paypal and status 91
+     *
+     * @param $pm
+     * @param $status
+     *
+     * @return bool
+     */
+    protected function isPaypalSpecialStatus($pm, $status)
+    {
+        return $pm instanceof Netresearch_OPS_Model_Payment_Paypal
+        && $status == Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_PROCESSING;
     }
 
     /**
@@ -1084,7 +1107,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         /** @var $invoice Mage_Sales_Model_Order_Invoice */
         foreach ($order->getInvoiceCollection() as $invoice) {
-            $invoice->setState(Mage_Sales_Model_Order_Invoice::STATE_CANCELED);
+            $invoice->cancel();
             $invoice->save();
         }
 

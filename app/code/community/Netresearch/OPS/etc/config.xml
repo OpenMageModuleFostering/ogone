@@ -28,7 +28,7 @@
 <config>
     <modules>
         <Netresearch_OPS>
-            <version>15.06.08</version>
+            <version>15.11.09</version>
         </Netresearch_OPS>
     </modules>
     <global>
@@ -156,13 +156,6 @@
                     </modules>
                 </args>
             </adminhtml>
-            <ops>
-                <use>standard</use>
-                <args>
-                    <module>Netresearch_OPS</module>
-                    <frontName>ops</frontName>
-                </args>
-            </ops>
         </routers>
     </admin>
     <adminhtml>
@@ -282,7 +275,8 @@
                  <template>ops</template>
                  <mode>custom</mode>
                 <url>
-                    <base>https://secure.ogone.com/ncol/</base>
+                    <base_prod>https://secure.ogone.com/ncol/prod</base_prod>
+                    <base_test>https://secure.ogone.com/ncol/test</base_test>
                     <ops_gateway>/orderstandard_utf8.asp</ops_gateway>
                     <ops_alias_gateway>/alias_gateway_utf8.asp</ops_alias_gateway>
                     <frontend_gateway>/orderstandard_utf8.asp</frontend_gateway>

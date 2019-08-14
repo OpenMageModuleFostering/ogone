@@ -150,7 +150,7 @@ class Netresearch_OPS_Block_Adminhtml_Customer_Edit_Tab_Alias
                 'actions'   => array(
                     array(
                         'caption'   => Mage::helper('ops')->__('Delete'),
-                        'url'       => array('base' => 'ops/adminhtml_alias/delete'),
+                        'url'       => array('base' => 'adminhtml/alias/delete'),
                         'field'     => 'id'
                     )
                 ),

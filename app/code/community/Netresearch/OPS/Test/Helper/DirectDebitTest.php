@@ -487,6 +487,7 @@ class Netresearch_OPS_Test_Helper_DirectDebitTest
             'ECOM_SHIPTO_POSTAL_NAME_LAST' => utf8_decode('Fürstenberg'),
             'ECOM_SHIPTO_POSTAL_STREET_LINE1' => utf8_decode('An der Tabaksmühle 3a'),
             'ECOM_SHIPTO_POSTAL_STREET_LINE2' => '',
+            'ECOM_SHIPTO_POSTAL_STREET_LINE3' => '',
             'ECOM_SHIPTO_POSTAL_COUNTRYCODE' => 'DE',
             'ECOM_SHIPTO_POSTAL_CITY' => 'Leipzig',
             'EMAIL'                         => 'hubertus.von.fuerstenberg@trash-mail.com',

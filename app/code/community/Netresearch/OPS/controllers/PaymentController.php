@@ -80,7 +80,7 @@ class Netresearch_OPS_PaymentController extends Netresearch_OPS_Controller_Abstr
             $order = $this->_getOrder();
             $this->_getCheckout()->setLastSuccessQuoteId($order->getQuoteId());
             $this->_getCheckout()->setLastQuoteId($order->getQuoteId());
-            $this->_getCheckout()->setLastOrderId($order->getQuoteId());
+            $this->_getCheckout()->setLastOrderId($order->getId());
         } catch (Exception $e) {
             $helper = Mage::helper('ops');
             $helper->log($helper->__("Exception in acceptAction: " . $e->getMessage()));
@@ -150,7 +150,7 @@ class Netresearch_OPS_PaymentController extends Netresearch_OPS_Controller_Abstr
         $order = $this->_getOrder();
         $this->_getCheckout()->setLastSuccessQuoteId($order->getQuoteId());
         $this->_getCheckout()->setLastQuoteId($order->getQuoteId());
-        $this->_getCheckout()->setLastOrderId($order->getQuoteId());
+        $this->_getCheckout()->setLastOrderId($order->getId());
         $this->_redirect('checkout/onepage/success');
     }
 

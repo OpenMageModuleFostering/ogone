@@ -12,7 +12,7 @@ class Netresearch_OPS_Helper_Payment_Request
     protected $config = null;
 
     /**
-     * @param null $config
+     * @param Netresearch_OPS_Model_Config $config
      */
     public function setConfig($config)
     {
@@ -31,52 +31,86 @@ class Netresearch_OPS_Helper_Payment_Request
         return $this->config;
     }
 
-
     /**
      * extracts the ship to information from a given address
      *
      * @param Mage_Customer_Model_Address_Abstract $address
-     * @param Mage_Sales_Model_Quote               $quote
+     * @param Mage_Sales_Model_Quote || Mage_Sales_Model_Order              $salesObject
      *
      * @return array - the parameters containing the ship to data
      */
-    public function extractShipToParameters(
-        Mage_Customer_Model_Address_Abstract $address, $order=null
-    ) {
+    public function extractShipToParameters($address, $salesObject = null)
+    {
         $paramValues = array();
+
+        if (!$address instanceof Mage_Customer_Model_Address_Abstract) {
+            // virtual carts may not have a shipping address - so fall back to billing
+            if (!is_null($salesObject) && $salesObject->getShippingAddress()) {
+                $address = $salesObject->getShippingAddress();
+            } else {
+                $address = $salesObject->getBillingAddress();
+            }
+
+            if(!$address){
+                return $paramValues;
+            }
+        }
+
+        $paramValues['ECOM_SHIPTO_POSTAL_CITY'] = $address->getCity();
+        $paramValues['ECOM_SHIPTO_POSTAL_POSTALCODE'] = $address->getPostcode();
+        $paramValues['ECOM_SHIPTO_POSTAL_STATE'] = $this->getIsoRegionCode($address);
+        $paramValues['ECOM_SHIPTO_POSTAL_COUNTRYCODE'] = $address->getCountry();
         $paramValues['ECOM_SHIPTO_POSTAL_NAME_FIRST'] = $address->getFirstname();
         $paramValues['ECOM_SHIPTO_POSTAL_NAME_LAST'] = $address->getLastname();
         $paramValues['ECOM_SHIPTO_POSTAL_STREET_LINE1'] = $address->getStreet(1);
         $paramValues['ECOM_SHIPTO_POSTAL_STREET_LINE2'] = $address->getStreet(2);
-        $paramValues['ECOM_SHIPTO_POSTAL_COUNTRYCODE'] = $address->getCountry();
-        $paramValues['ECOM_SHIPTO_POSTAL_CITY'] = $address->getCity();
-        $paramValues['ECOM_SHIPTO_POSTAL_POSTALCODE'] = $address->getPostcode();
-        $paramValues['ECOM_SHIPTO_POSTAL_STATE'] = $this->getIsoRegionCode($address);
+        $paramValues['ECOM_SHIPTO_POSTAL_STREET_LINE3'] = $address->getStreet(3);
 
         return $paramValues;
     }
 
-    public function extractBillToParameters(
-        Mage_Customer_Model_Address_Abstract $address, $order=null
-    ) {
+    /**
+     * Extracts the billing address parameters for the ECOM_BILLTO fields
+     *
+     * @param Mage_Customer_Model_Address_Abstract $address
+     * @param Mage_Sales_Model_Quote || Mage_Sales_Model_Order              $salesObject
+     *
+     * @return string[] - array containing the ECOM_BILLTO parameters
+     */
+    public function extractBillToParameters($address, $salesObject = null)
+    {
         $paramValues = array();
+
+        if (!$address instanceof Mage_Customer_Model_Address_Abstract) {
+            if(!is_null($salesObject)) {
+                $address = $salesObject->getBillingAddress();
+            }
+            if(!$address){
+                return $paramValues;
+            }
+        }
+
         $paramValues['ECOM_BILLTO_POSTAL_CITY'] = $address->getCity();
+        $paramValues['ECOM_BILLTO_POSTAL_POSTALCODE'] = $address->getPostcode();
+        $paramValues['ECOM_BILLTO_POSTAL_STATE'] = $this->getIsoRegionCode($address);
         $paramValues['ECOM_BILLTO_POSTAL_COUNTRYCODE'] = $this->getCountry();
         $paramValues['ECOM_BILLTO_POSTAL_NAME_FIRST'] = $address->getFirstname();
         $paramValues['ECOM_BILLTO_POSTAL_NAME_LAST'] = $address->getLastname();
         $paramValues['ECOM_BILLTO_POSTAL_POSTALCODE'] = $address->getPostcode();
         $paramValues['ECOM_BILLTO_POSTAL_STREET_LINE1'] = $address->getStreet(1);
         $paramValues['ECOM_BILLTO_POSTAL_STREET_LINE2'] = $address->getStreet(2);
+        $paramValues['ECOM_BILLTO_POSTAL_STREET_LINE3'] = $address->getStreet(3);
 
         return $paramValues;
     }
+
     /**
      * extraxcts the according Ingenico Payment Services owner* parameter
      *
      * @param Mage_Sales_Model_Quote               $quote
      * @param Mage_Customer_Model_Address_Abstract $billingAddress
      *
-     * @return array
+     * @return string[]
      */
     public function getOwnerParams(Mage_Sales_Model_Quote $quote, Mage_Customer_Model_Address_Abstract $billingAddress)
     {
@@ -101,7 +135,7 @@ class Netresearch_OPS_Helper_Payment_Request
      *
      * @param Mage_Customer_Model_Address_Abstract $address
      *
-     * @return string - the regin code in iso format
+     * @return string - the region code in iso format
      */
     public function getIsoRegionCode(Mage_Customer_Model_Address_Abstract $address)
     {
@@ -120,8 +154,8 @@ class Netresearch_OPS_Helper_Payment_Request
     /**
      * checks if the given region code is already in iso format
      *
-     * @param $regionCode
-     * @param $countryCode
+     * @param string $regionCode
+     * @param string $countryCode
      *
      * @return bool
      */
@@ -468,7 +502,7 @@ class Netresearch_OPS_Helper_Payment_Request
         }
 
         // add shipping item
-        $shippingItemFields = $this->getShippingItemFormFields($count, $order);
+        $shippingItemFields = $this->getShippingItemFormFields($order);
         if (is_array($shippingItemFields)) {
             $formFields = array_merge($formFields, $shippingItemFields);
         }
@@ -498,22 +532,18 @@ class Netresearch_OPS_Helper_Payment_Request
      * Genereates item array for shipping, returns false if order is virtual
      *
      * @param Mage_Sales_Model_Order $order
-     * @param                        $count
      *
      * @return array | false
      */
-    protected function getShippingItemFormFields($count, $order)
+    protected function getShippingItemFormFields($order)
     {
         if ($order->getIsNotVirtual()) {
             /* add shipping item */
-            $formFields['ITEMID' . $count] = 'SHIPPING';
-            $formFields['ITEMNAME' . $count] = substr($order->getShippingDescription(), 0, 30);
-            $formFields['ITEMPRICE' . $count] = number_format($order->getBaseShippingInclTax(), 2, '.', '');
-            $formFields['ITEMQUANT' . $count] = 1;
-            $formFields['ITEMVATCODE' . $count]
+            $formFields['ORDERSHIPMETH'] = substr($order->getShippingDescription(), 0, 25);
+            $formFields['ORDERSHIPCOST'] = Mage::helper('ops')->getAmount($order->getBaseShippingAmount());
+            $formFields['ORDERSHIPTAXCODE']
                 = str_replace(',', '.', (string)(float)$this->getShippingTaxRate($order)) . '%';
-            $formFields['TAXINCLUDED' . $count] = 1;
-
+            $formFields['ORDERSHIPTAX'] = Mage::helper('ops')->getAmount($order->getBaseShippingTaxAmount());
             return $formFields;
         }
 

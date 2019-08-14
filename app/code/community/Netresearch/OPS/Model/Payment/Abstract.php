@@ -29,6 +29,9 @@
  */
 class Netresearch_OPS_Model_Payment_Abstract extends Mage_Payment_Model_Method_Abstract
 {
+    protected $pm = '';
+    protected $brand = '';
+
     protected $_code  = 'ops';
     protected $_formBlockType = 'ops/form';
     protected $_infoBlockType = 'ops/info';
@@ -273,24 +276,30 @@ class Netresearch_OPS_Model_Payment_Abstract extends Mage_Payment_Model_Method_A
         if (!$payment->getId()) {
             $payment = Mage::getModel('sales/order')->loadByIncrementId($checkout->getLastRealOrderId())->getPayment();
         }
-        return $payment;
     }
 
     public function getOpsBrand($payment=null)
     {
         if(is_null($payment)){
-            $payment = $this->getPayment();
+            $payment = $this->getInfoInstance();
         }
-        return trim($payment->getAdditionalInformation('PM'));
+        $brand = trim($payment->getAdditionalInformation('BRAND'));
+        if(!strlen($brand)){
+            $brand=$this->brand;
+        }
+        return $brand;
     }
 
     public function getOpsCode($payment=null)
     {
         if(is_null($payment)){
-            $payment = $this->getPayment();
+            $payment = $this->getInfoInstance();
         }
-        return trim($payment->getAdditionalInformation('BRAND'));
-//        return str_replace('ops_', '', $this->_code);
+        $pm = trim($payment->getAdditionalInformation('PM'));
+        if(!strlen($pm)){
+            $pm=$this->pm;
+        }
+        return $pm;
     }
 
     /**
@@ -342,9 +351,11 @@ class Netresearch_OPS_Model_Payment_Abstract extends Mage_Payment_Model_Method_A
     public function getShipToParams($shippingAddress)
     {
         $shipToParams = false;
-        if ($this->getNeedsShipToParams() && $this->getConfig()->canSubmitExtraParameter()) {
+        if ($this->getNeedsShipToParams()
+            && $this->getConfig()->canSubmitExtraParameter()
+            && $shippingAddress
+        ) {
             $shipToParams = $this->getRequestHelper()->extractShipToParameters($shippingAddress);
-
         }
 
         return $shipToParams;
@@ -360,9 +371,11 @@ class Netresearch_OPS_Model_Payment_Abstract extends Mage_Payment_Model_Method_A
     public function getBillToParams($billingAddress)
     {
         $billToParams = false;
-        if ($this->getNeedsBillToParams() && $this->getConfig()->canSubmitExtraParameter()) {
+        if ($this->getNeedsBillToParams()
+            && $this->getConfig()->canSubmitExtraParameter()
+            && $billingAddress
+        ) {
             $billToParams = $this->getRequestHelper()->extractBillToParameters($billingAddress);
-
         }
 
         return $billToParams;
@@ -424,6 +437,11 @@ class Netresearch_OPS_Model_Payment_Abstract extends Mage_Payment_Model_Method_A
         $billToFormFields = $this->getBillToParams($order->getBillingAddress());
         if (is_array($billToFormFields)) {
             $formFields = array_merge($formFields, $billToFormFields);
+        }
+
+        $cartDataFormFields = $this->getOrderItemData($order);
+        if(is_array($cartDataFormFields)){
+            $formFields = array_merge($formFields, $cartDataFormFields);
         }
 
         $shaSign = Mage::helper('ops/payment')->shaCrypt(Mage::helper('ops/payment')->getSHASign($formFields, null, $order->getStoreId()));
@@ -919,6 +937,7 @@ class Netresearch_OPS_Model_Payment_Abstract extends Mage_Payment_Model_Method_A
      */
     public function getQuestion($order, $requestParams)
     {
+        return '';
     }
 
     /**

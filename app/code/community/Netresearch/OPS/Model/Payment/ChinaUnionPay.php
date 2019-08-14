@@ -30,9 +30,9 @@
 class Netresearch_OPS_Model_Payment_ChinaUnionPay
     extends Netresearch_OPS_Model_Payment_Abstract
 {
+    protected $pm = 'PAYDOL_UPOP';
+    protected $brand = 'UnionPay';
     const CODE = 'ops_chinaUnionPay';
-    const PM = 'PAYDOL_UPOP';
-    const BRAND = 'UnionPay';
 
     /** Check if we can capture directly from the backend */
     protected $_canBackendDirectCapture = true;
@@ -49,22 +49,10 @@ class Netresearch_OPS_Model_Payment_ChinaUnionPay
     /** payment code */
     protected $_code = self::CODE;
 
-    public function getOpsCode($payment = null)
-    {
-        return self::PM;
-    }
-
-    public function getOpsBrand($payment = null)
-    {
-        return self::BRAND;
-    }
-
-
     public function getPaymentAction()
     {
         return Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE_CAPTURE;
     }
-
 
 }
 

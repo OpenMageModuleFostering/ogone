@@ -10,6 +10,10 @@
 class Netresearch_OPS_Model_Payment_MiniTix
     extends Netresearch_OPS_Model_Payment_Abstract
 {
+    protected $pm = 'miniTix';
+    protected $brand = 'miniTix';
+
+
     /** Check if we can capture directly from the backend */
     protected $_canBackendDirectCapture = true;
 

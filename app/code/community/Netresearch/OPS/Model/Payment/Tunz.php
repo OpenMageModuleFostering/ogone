@@ -10,6 +10,9 @@
 class Netresearch_OPS_Model_Payment_Tunz
     extends Netresearch_OPS_Model_Payment_Abstract
 {
+    protected $pm = 'TUNZ';
+    protected $brand = 'TUNZ';
+
     /** Check if we can capture directly from the backend */
     protected $_canBackendDirectCapture = true;
 
@@ -19,9 +22,5 @@ class Netresearch_OPS_Model_Payment_Tunz
     /** payment code */
     protected $_code = 'ops_tunz';
 
-    public function getOpsCode($payment=null)
-    {
-        return 'TUNZ';
-    }
 }
 

@@ -10,6 +10,9 @@
 class Netresearch_OPS_Model_Payment_Cod
     extends Netresearch_OPS_Model_Payment_Abstract
 {
+    protected $pm = 'Payment on Delivery';
+    protected $brand = 'Payment on Delivery';
+
     /** Check if we can capture directly from the backend */
     protected $_canBackendDirectCapture = true;
 
@@ -18,10 +21,5 @@ class Netresearch_OPS_Model_Payment_Cod
 
     /** payment code */
     protected $_code = 'ops_cod';
-
-    public function getOpsCode($payment=null)
-    {
-        return 'Payment on Delivery';
-    }
 }
 

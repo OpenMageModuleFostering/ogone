@@ -128,25 +128,9 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
             ->method('getId')
             ->will($this->returnValue('1'));
         $this->replaceByMock('model', 'sales/quote_payment', $payment);
-        $quote = $this->getModelMock(
-            'sales/quote', array('getPayment', 'getQuoteId')
-        );
-        $quote->expects($this->any())
-            ->method('getQuoteId')
-            ->will($this->returnValue('321'));
-        $quote->expects($this->any())
-            ->method('getPayment')
-            ->will($this->returnValue($payment));
-
-        $session = Mage::getSingleton(
-            'checkout/session',
-            array(
-                 'last_real_order_id' => '123',
-                 'quote'              => $quote
-            )
-        );
 
         $method = Mage::getModel('ops/payment_bankTransfer');
+        $method->setInfoInstance($payment);
         try {
             $method->assignData(array('country_id' => 'DE'));
         } catch (Mage_Core_Exception $e) {

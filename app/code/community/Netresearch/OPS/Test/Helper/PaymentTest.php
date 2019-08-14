@@ -794,15 +794,15 @@ class Netresearch_OPS_Test_Helper_PaymentTest
         $order = $this->getModelMock('sales/order', array('save', 'cancel', 'setState'));
         $order->expects($this->once())
             ->method('cancel')
-        ;
+            ->will($this->throwException(new Mage_Core_Exception('exceptional case')));
 
 
         $paymentHelperMock = $this->getHelperMock('ops/payment', array('setPaymentTransactionInformation', '_getCheckout', 'cancelInvoices'));
         $paymentHelperMock->expects($this->never())
             ->method('setPaymentTransactionInformation');
         $paymentHelperMock->expects($this->once())
-            ->method('cancelInvoices')
-            ->will($this->throwException(new Mage_Core_Exception('exceptional case')));
+            ->method('cancelInvoices');
+
 
         $paymentHelperMock->expects($this->any())
             ->method('_getCheckout')

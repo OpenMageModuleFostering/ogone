@@ -10,6 +10,7 @@ class Netresearch_OPS_Test_Model_Payment_ChinaUnionPayTest extends EcomDev_PHPUn
     {
         parent::setUp();
         $this->model = Mage::getModel('ops/payment_chinaUnionPay');
+        $this->model->setInfoInstance(Mage::getModel('payment/info'));
     }
 
     /**
@@ -22,12 +23,12 @@ class Netresearch_OPS_Test_Model_Payment_ChinaUnionPayTest extends EcomDev_PHPUn
 
     public function testGetOpsCode()
     {
-        $this->assertEquals(Netresearch_OPS_Model_Payment_ChinaUnionPay::PM, $this->model->getOpsCode());
+        $this->assertEquals('PAYDOL_UPOP', $this->model->getOpsCode());
     }
 
     public function testGetOpsBrand()
     {
-        $this->assertEquals(Netresearch_OPS_Model_Payment_ChinaUnionPay::BRAND, $this->model->getOpsBrand());
+        $this->assertEquals('UnionPay', $this->model->getOpsBrand());
     }
 
 
@@ -40,6 +41,7 @@ class Netresearch_OPS_Test_Model_Payment_ChinaUnionPayTest extends EcomDev_PHPUn
     {
         $this->assertEquals(
             Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE_CAPTURE,
-            $this->model->getPaymentAction());
+            $this->model->getPaymentAction()
+        );
     }
 }

@@ -624,13 +624,13 @@ class Netresearch_OPS_Model_Config extends Mage_Payment_Model_Config
     }
 
     /**
-     * Will always return the base url (https://secure.domain.tld/ncol/)
+     * Will always return the base url (https://secure.domain.tld/ncol/[test, prod]) for the mode of the store
      *
-     * @return string
+     * @return string Url depending of the mode - will be empty for custom mode
      */
-    public function getOpsBaseUrl()
+    public function getOpsBaseUrl($storeId = null)
     {
-        return $this->getOpsUrl('base');
+        return $this->getOpsUrl('base_'.$this->getMode($storeId));
     }
 
     /**
@@ -643,7 +643,7 @@ class Netresearch_OPS_Model_Config extends Mage_Payment_Model_Config
      */
     public function getDefaultOpsUrl($path, $storeId = null)
     {
-        return $this->getOpsBaseUrl() . $this->getMode($storeId) . $this->getOpsUrl($path);
+        return $this->getOpsBaseUrl($storeId) . $this->getOpsUrl($path);
     }
 
     /**

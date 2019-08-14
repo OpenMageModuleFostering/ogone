@@ -10,6 +10,9 @@
 class Netresearch_OPS_Model_Payment_Wallie
     extends Netresearch_OPS_Model_Payment_Abstract
 {
+    protected $pm = 'Wallie';
+    protected $brand = 'Wallie';
+
     /** Check if we can capture directly from the backend */
     protected $_canBackendDirectCapture = true;
 
@@ -19,9 +22,5 @@ class Netresearch_OPS_Model_Payment_Wallie
     /** payment code */
     protected $_code = 'ops_wallie';
 
-    public function getOpsCode($payment = null)
-    {
-        return 'Wallie';
-    }
 }
 

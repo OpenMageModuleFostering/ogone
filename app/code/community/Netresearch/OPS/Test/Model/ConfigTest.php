@@ -518,5 +518,15 @@ class Netresearch_OPS_Test_Model_ConfigTest
         $config = Mage::getModel('ops/config');
         $this->assertEquals($config->getResendPaymentInfoIdentity(), 'sales');
     }
+
+    public function testGetOpsBaseUrl()
+    {
+        $this->setMode(Netresearch_OPS_Model_Source_Mode::TEST);
+        $this->assertEquals('https://secure.domain.tld/ncol/test', $this->_model->getOpsBaseUrl(0));
+        $this->setMode(Netresearch_OPS_Model_Source_Mode::PROD);
+        $this->assertEquals('https://secure.domain.tld/ncol/prod', $this->_model->getOpsBaseUrl(0));
+        $this->setMode(Netresearch_OPS_Model_Source_Mode::CUSTOM);
+        $this->assertEmpty($this->_model->getOpsBaseUrl(0));
+    }
 }
 

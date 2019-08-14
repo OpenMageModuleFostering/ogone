@@ -29,29 +29,37 @@
  */
 class Netresearch_OPS_Model_Payment_OpenInvoice_Abstract extends Netresearch_OPS_Model_Payment_Abstract
 {
-    const CODE = '';
-
     protected $_needsCartDataForRequest = true;
+    protected $_needsShipToParams = false;
 
     public function getMethodDependendFormFields($order, $requestParams=null)
     {
-        $formFields = array();
+        $formFields = parent::getMethodDependendFormFields($order, $requestParams);
+
         $billingAddress = $order->getBillingAddress();
-        $shippingAddress = $order->getShippingAddress();
         $birthday = new DateTime($order->getCustomerDob());
+
+
+        $gender = $order->getCustomerGender() == 1 ? 'M' : 'F';
+
+        $billingAddress  = $order->getBillingAddress();
+        $street = str_replace("\n", ' ',$billingAddress->getStreet(-1));
+        $regexp = '/^([^0-9]*)([0-9].*)$/';
+        if (!preg_match($regexp, $street, $splittedStreet)) {
+            $splittedStreet[1] = $street;
+            $splittedStreet[2] = '';
+        }
+
+        $formFields['OWNERADDRESS']                     = trim($splittedStreet[1]);
+        $formFields['ECOM_BILLTO_POSTAL_STREET_NUMBER'] = trim($splittedStreet[2]);
 
         //$formFields['ECOM_SHIPTO_POSTAL_NAME_PREFIX']   = $shippingAddress->getPrefix();
         $formFields['ECOM_BILLTO_POSTAL_NAME_FIRST']    = substr($billingAddress->getFirstname(), 0, 50);
         $formFields['ECOM_BILLTO_POSTAL_NAME_LAST']     = substr($billingAddress->getLastname(), 0, 50);
         $formFields['ECOM_SHIPTO_DOB']                  = $birthday->format('d/m/Y');
+        $formFields['ECOM_CONSUMER_GENDER']             = $gender;
 
         return $formFields;
     }
-
-    public function getOpsCode($payment = null)
-    {
-        return self::CODE;
-    }
-
 
 }

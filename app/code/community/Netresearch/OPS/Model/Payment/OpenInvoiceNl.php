@@ -10,7 +10,8 @@
 class Netresearch_OPS_Model_Payment_OpenInvoiceNl
     extends Netresearch_OPS_Model_Payment_OpenInvoice_Abstract
 {
-    const CODE = 'Open Invoice NL';
+    protected $pm = 'Open Invoice NL';
+    protected $brand = 'Open Invoice NL';
 
     /** if we can capture directly from the backend */
     protected $_canBackendDirectCapture = false;
@@ -140,11 +141,5 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceNl
             'ECOM_SHIPTO_POSTAL_STREET_NUMBER',
         );
     }
-
-    public function getOpsCode($payment = null)
-    {
-        return self::CODE;
-    }
-
 
 }

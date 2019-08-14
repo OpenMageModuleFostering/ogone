@@ -237,7 +237,7 @@ class Netresearch_OPS_Test_Helper_Payment_RequestTest extends EcomDev_PHPUnit_Te
 
         $this->assertArrayHasKey('ITEMID1', $formFields);
         $this->assertArrayHasKey('ITEMID2', $formFields);
-        $this->assertArrayHasKey('ITEMID3', $formFields);
+        $this->assertArrayHasKey('ORDERSHIPCOST', $formFields);
     }
 
     public function testExtractOrderItemParametersWithNoItems()

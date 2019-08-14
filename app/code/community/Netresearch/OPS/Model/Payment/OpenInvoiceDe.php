@@ -10,7 +10,8 @@
 class Netresearch_OPS_Model_Payment_OpenInvoiceDe
     extends Netresearch_OPS_Model_Payment_OpenInvoice_Abstract
 {
-    const CODE = 'Open Invoice DE';
+    protected $pm = 'Open Invoice DE';
+    protected $brand = 'Open Invoice DE';
 
     /** if we can capture directly from the backend */
     protected $_canBackendDirectCapture = false;
@@ -62,7 +63,6 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceDe
         $formFields = parent::getMethodDependendFormFields($order, $requestParams);
 
         $shippingAddress = $order->getShippingAddress();
-        $birthday = new DateTime($order->getCustomerDob());
 
         $gender = Mage::getSingleton('eav/config')
             ->getAttribute('customer', 'gender')
@@ -70,7 +70,6 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceDe
             ->getOptionText($order->getCustomerGender());
 
         $formFields['CIVILITY']      = $gender == 'Male' ? 'Herr' : 'Frau';
-        $formFields['ORDERSHIPCOST'] = round(100 * $order->getBaseShippingInclTax());
 
         if (!$this->getConfig()->canSubmitExtraParameter($order->getStoreId())) {
             // add the shipto parameters even if the submitOption is false, because they are required for OpenInvoice
@@ -91,9 +90,5 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceDe
         return (bool) $this->getConfigData('allow_discounted_carts');
     }
 
-    public function getOpsCode($payment = null)
-    {
-        return self::CODE;
-    }
 }
 
