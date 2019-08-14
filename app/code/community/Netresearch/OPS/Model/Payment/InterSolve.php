@@ -18,6 +18,7 @@ class Netresearch_OPS_Model_Payment_InterSolve
 
     /** info source path */
     protected $_infoBlockType = 'ops/info_redirect';
+    protected $_formBlockType = 'ops/form_interSolve';
 
     /** payment code */
     protected $_code = 'ops_interSolve';

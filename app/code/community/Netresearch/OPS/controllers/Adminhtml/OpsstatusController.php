@@ -16,7 +16,7 @@ class Netresearch_OPS_Adminhtml_OpsstatusController extends Mage_Adminhtml_Contr
     }
 
     /**
-     * performs the status update call to Ingenico Payment Services
+     * performs the status update call to Ingenico ePayments
      */
     public function updateAction()
     {

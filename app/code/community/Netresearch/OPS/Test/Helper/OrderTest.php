@@ -127,42 +127,11 @@ class Netresearch_OPS_Test_Helper_OrderTest extends EcomDev_PHPUnit_Test_Case
         );
     }
 
-    public function testCheckForOpsStateOnStatusUpdateWillPassStatusUpdate()
-    {
-        $payment = Mage::getModel('sales/order_payment');
-        $payment->setAdditionalInformation('status', 9);
-        $order = Mage::getModel('sales/order');
-        $order->setPayment($payment);
-        $order->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        $order->setStatus(Mage_Sales_Model_Order::STATE_PROCESSING);
-        Mage::helper('ops/order')->checkForOpsStateOnStatusUpdate($order);
-        $this->assertEquals(Mage_Sales_Model_Order::STATE_PROCESSING, $order->getStatus());
-    }
-
-    public function testCheckForOpsStateOnStatusUpdateWillNotPassStatusUpdate()
-    {
-        $payment = Mage::getModel('sales/order_payment');
-        $payment->setAdditionalInformation('status', 9);
-        $order = Mage::getModel('sales/order');
-        $order->setPayment($payment);
-        $order->setStatus(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
-        Mage::helper('ops/order')->checkForOpsStateOnStatusUpdate($order);
-        $this->assertEquals(null, $order->getStatus());
-    }
-
     public function testSetDataHelper()
     {
         $dataHelper = $this->getHelperMock('ops/data');
         $helper = Mage::helper('ops/order');
         $helper->setDataHelper($dataHelper);
         $this->assertEquals($dataHelper, $helper->getDataHelper());
-    }
-
-    public function testSetStatusMappingModel()
-    {
-        $dataHelper = $this->getModelMock('ops/status_mapping');
-        $helper = Mage::helper('ops/order');
-        $helper->setStatusMappingModel($dataHelper);
-        $this->assertEquals($dataHelper, $helper->getStatusMappingModel());
     }
 }

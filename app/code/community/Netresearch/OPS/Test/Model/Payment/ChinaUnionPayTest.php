@@ -14,7 +14,7 @@ class Netresearch_OPS_Test_Model_Payment_ChinaUnionPayTest extends EcomDev_PHPUn
     }
 
     /**
-     * assure that openInvoiceNL can not capture partial, because invoice is always created on feedback in this case
+     * assure that CUP can not capture partial, because invoice is always created on feedback in this case
      */
     public function testCanCapturePartial()
     {

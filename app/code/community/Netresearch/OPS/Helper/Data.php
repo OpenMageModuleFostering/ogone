@@ -125,7 +125,7 @@ class Netresearch_OPS_Helper_Data extends Mage_Core_Helper_Abstract
     public function isAdminSession()
     {
         if ($this->getAdminSession()->getUser()) {
-            return 0 < $this->getAdminSession()->getUser()->getUserId();
+            return 0 < $this->getAdminSession()->getUser()->getUserId() || $this->getAdminSession()->isLoggedIn();
         }
         return false;
     }

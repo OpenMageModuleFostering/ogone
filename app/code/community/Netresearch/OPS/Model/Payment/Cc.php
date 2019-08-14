@@ -10,6 +10,8 @@
  */
 class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_DirectLink
 {
+    const CODE = 'ops_cc';
+
     /** info source path */
     protected $_infoBlockType = 'ops/info_cc';
 
@@ -17,9 +19,10 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
     protected $_formBlockType = 'ops/form_cc';
 
     /** payment code */
-    protected $_code = 'ops_cc';
+    protected $_code = self::CODE;
 
     protected $featureModel = null;
+
 
     /** ops payment code */
     public function getOpsCode($payment = null)
@@ -31,11 +34,13 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
         if ('UNEUROCOM' == $this->getOpsBrand($payment)) {
             return 'UNEUROCOM';
         }
+
         return 'CreditCard';
     }
 
     /**
      * @param null $payment
+     *
      * @return array|mixed|null
      */
     public function getOpsBrand($payment = null)
@@ -50,11 +55,14 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
     public function getOrderPlaceRedirectUrl($payment = null)
     {
         if ($this->hasBrandAliasInterfaceSupport($payment)) {
-            if ('' == $this->getOpsHtmlAnswer($payment))
-                return false; // Prevent redirect on cc payment
-            else
-                return Mage::getModel('ops/config')->get3dSecureRedirectUrl();
+            if ('' == $this->getOpsHtmlAnswer($payment)) {
+                return false;
+            } // Prevent redirect on cc payment
+            else {
+                return $this->getConfig()->get3dSecureRedirectUrl();
+            }
         }
+
         return parent::getOrderPlaceRedirectUrl();
     }
 
@@ -65,7 +73,8 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
      */
     public function getBrandsForAliasInterface()
     {
-        $brands = Mage::getModel('ops/config')->getInlinePaymentCcTypes();
+        $brands = $this->getConfig()->getInlinePaymentCcTypes($this->getCode());
+
         return $brands;
     }
 
@@ -74,7 +83,7 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
      *
      * @param Mage_Payment_Model_Info $payment
      *
-     * @return void
+     * @return bool
      */
     public function hasBrandAliasInterfaceSupport($payment = null)
     {
@@ -86,8 +95,10 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
 
     /**
      * Validates alias for in quote provided addresses
+     *
      * @param Mage_Sales_Model_Quote $quote
-     * @param Varien_Object $payment
+     * @param Varien_Object          $payment
+     *
      * @throws Mage_Core_Exception
      */
     protected function validateAlias($quote, $payment)
@@ -123,10 +134,11 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
     }
 
 
-    protected function performPreDirectLinkCallActions(Mage_Sales_Model_Quote $quote, Varien_Object $payment, $requestParams = array())
-    {
+    protected function performPreDirectLinkCallActions(Mage_Sales_Model_Quote $quote, Varien_Object $payment,
+        $requestParams = array()
+    ) {
         Mage::helper('ops/alias')->cleanUpAdditionalInformation($payment, true);
-        if (true === Mage::getModel('ops/config')->isAliasManagerEnabled()) {
+        if (true === Mage::getModel('ops/config')->isAliasManagerEnabled($this->getCode())) {
             $this->validateAlias($quote, $payment);
         }
 
@@ -173,7 +185,7 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
      * if Version is CE 1.8 / EE 1.14 use parent method otherwise use our implementation
      *
      * @param Mage_Sales_Model_Quote $quote
-     * @param $checksBitMask
+     * @param                        $checksBitMask
      *
      * @return bool
      */
@@ -217,39 +229,6 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
     }
 
     /**
-     * Override the method instead of the _canReviewPayment parameter, because we will only allow it with Ingenico Payment Services status == 0
-     *
-     * @return bool
-     * @param Mage_Payment_Model_Info $payment
-     */
-    public function canReviewPayment(Mage_Payment_Model_Info $payment)
-    {
-        if ($payment->getAdditionalInformation('status') == Netresearch_OPS_Model_Payment_Abstract::OPS_INVALID) {
-
-            return true;
-        }
-
-        return false;
-
-    }
-
-    /**
-     * Enable payment deny when __VENDOR status == 0
-     *
-     * @param Mage_Payment_Model_Info $payment
-     * @return bool
-     */
-    public function denyPayment(Mage_Payment_Model_Info $payment)
-    {
-        if ($payment->getAdditionalInformation('status') == Netresearch_OPS_Model_Payment_Abstract::OPS_INVALID) {
-            // returning true will automatically invoke the payment cancellation process
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * Check wether payment method is available for quote
      *
      * @param Mage_Sales_Model_Quote $quote
@@ -258,14 +237,32 @@ class Netresearch_OPS_Model_Payment_Cc extends Netresearch_OPS_Model_Payment_Dir
      */
     public function isAvailable($quote = null)
     {
-        if (!$quote->getItemsCount() > 0 && $this->getDataHelper()->isAdminSession()) {
+        if (!is_null($quote) && !$quote->getItemsCount() > 0 && $this->getDataHelper()->isAdminSession()) {
             /* Disable payment method in backend as long as there are no items in quote to
             *  avoid problems with alias creation in EE1.12 & EE1.13
             */
             return false;
-        } else {
-            return parent::isAvailable($quote);
         }
+
+        return parent::isAvailable($quote);
+    }
+
+    public function isInitializeNeeded()
+    {
+        return !$this->getPaymentHelper()->isInlinePayment($this->getInfoInstance());
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getMethodDependendFormFields($order, $requestParams = null)
+    {
+        $formFields = parent::getMethodDependendFormFields($order, $requestParams);
+        if ($this->getConfig()->getCreditDebitSplit($order->getStoreId())) {
+            $formFields['CREDITDEBIT'] = "C";
+        }
+
+        return $formFields;
     }
 }
 

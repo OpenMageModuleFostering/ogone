@@ -20,7 +20,7 @@ class Netresearch_OPS_Helper_Payment_Request
     }
 
     /**
-     * @return null
+     * @return Netresearch_OPS_Model_Config
      */
     public function getConfig()
     {
@@ -64,7 +64,6 @@ class Netresearch_OPS_Helper_Payment_Request
         $paramValues['ECOM_SHIPTO_POSTAL_NAME_LAST'] = $address->getLastname();
         $paramValues['ECOM_SHIPTO_POSTAL_STREET_LINE1'] = $address->getStreet(1);
         $paramValues['ECOM_SHIPTO_POSTAL_STREET_LINE2'] = $address->getStreet(2);
-        $paramValues['ECOM_SHIPTO_POSTAL_STREET_LINE3'] = $address->getStreet(3);
 
         return $paramValues;
     }
@@ -92,8 +91,8 @@ class Netresearch_OPS_Helper_Payment_Request
 
         $paramValues['ECOM_BILLTO_POSTAL_CITY'] = $address->getCity();
         $paramValues['ECOM_BILLTO_POSTAL_POSTALCODE'] = $address->getPostcode();
-        $paramValues['ECOM_BILLTO_POSTAL_STATE'] = $this->getIsoRegionCode($address);
-        $paramValues['ECOM_BILLTO_POSTAL_COUNTRYCODE'] = $this->getCountry();
+        $paramValues['ECOM_BILLTO_POSTAL_COUNTY'] = $this->getIsoRegionCode($address);
+        $paramValues['ECOM_BILLTO_POSTAL_COUNTRYCODE'] = $address->getCountry();
         $paramValues['ECOM_BILLTO_POSTAL_NAME_FIRST'] = $address->getFirstname();
         $paramValues['ECOM_BILLTO_POSTAL_NAME_LAST'] = $address->getLastname();
         $paramValues['ECOM_BILLTO_POSTAL_POSTALCODE'] = $address->getPostcode();
@@ -105,17 +104,18 @@ class Netresearch_OPS_Helper_Payment_Request
     }
 
     /**
-     * extraxcts the according Ingenico Payment Services owner* parameter
+     * extraxcts the according Ingenico ePayments owner* parameter
      *
-     * @param Mage_Sales_Model_Quote               $quote
      * @param Mage_Customer_Model_Address_Abstract $billingAddress
+     *
+     * @param Mage_Sales_Model_Quote|Mage_Sales_Model_Order               $salesObject
      *
      * @return string[]
      */
-    public function getOwnerParams(Mage_Sales_Model_Quote $quote, Mage_Customer_Model_Address_Abstract $billingAddress)
+    public function getOwnerParams(Mage_Customer_Model_Address_Abstract $billingAddress, $salesObject)
     {
         $ownerParams = array();
-        if ($this->getConfig()->canSubmitExtraParameter($quote->getStoreId())) {
+        if ($this->getConfig()->canSubmitExtraParameter($salesObject->getStoreId())) {
             $ownerParams = array(
                 'OWNERADDRESS'                  => str_replace("\n", ' ', $billingAddress->getStreet(1)),
                 'OWNERTOWN'                     => $billingAddress->getCity(),
@@ -128,6 +128,46 @@ class Netresearch_OPS_Helper_Payment_Request
         }
 
         return $ownerParams;
+    }
+
+    /**
+     * Returns the template parameters and their dependencies
+     *
+     * @return array
+     */
+
+    public function getTemplateParams($storeId = null)
+    {
+        $formFields = array();
+        switch ($this->getConfig()->getConfigData('template')) {
+            case Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_MAGENTO_INTERNAL:
+                $formFields['TP'] = $this->getConfig()->getPayPageTemplate($storeId);
+                break;
+            case Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_TEMPLATE:
+                $formFields['TP'] = $this->getConfig()->getTemplateIdentifier($storeId);
+                break;
+            case Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_IFRAME:
+                $formFields['PARAMPLUS'] = 'IFRAME=1';
+            case Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_REDIRECT:
+                $formFields['PMLISTTYPE'] = $this->getConfig()->getConfigData('pmlist', $storeId);
+                $formFields['TITLE'] = $this->getConfig()->getConfigData('html_title', $storeId);
+                $formFields['BGCOLOR'] = $this->getConfig()->getConfigData('bgcolor', $storeId);
+                $formFields['TXTCOLOR'] = $this->getConfig()->getConfigData('txtcolor', $storeId);
+                $formFields['TBLBGCOLOR'] = $this->getConfig()->getConfigData('tblbgcolor', $storeId);
+                $formFields['TBLTXTCOLOR'] = $this->getConfig()->getConfigData('tbltxtcolor', $storeId);
+                $formFields['BUTTONBGCOLOR'] = $this->getConfig()->getConfigData('buttonbgcolor', $storeId);
+                $formFields['BUTTONTXTCOLOR'] = $this->getConfig()->getConfigData('buttontxtcolor', $storeId);
+                $formFields['FONTTYPE'] = $this->getConfig()->getConfigData('fonttype', $storeId);
+                $formFields['LOGO'] = $this->getConfig()->getConfigData('logo', $storeId);
+                $formFields['HOMEURL'] = $this->getConfig()->hasHomeUrl() ? $this->getConfig()->getContinueUrl(array('redirect' => 'home')) : 'NONE';
+                $formFields['CATALOGURL'] = $this->getConfig()->hasCatalogUrl() ? $this->getConfig()->getContinueUrl(array('redirect' => 'catalog')) : '';
+                break;
+            default:
+                break;
+        };
+
+        return $formFields;
+
     }
 
     /**
@@ -442,7 +482,7 @@ class Netresearch_OPS_Helper_Payment_Request
     }
 
     /**
-     * Returns the mandatory fields for requests to Ingenico Payment Services
+     * Returns the mandatory fields for requests to Ingenico ePayments
      *
      * @param Mage_Sales_Model_Order $order
      *
@@ -467,7 +507,22 @@ class Netresearch_OPS_Helper_Payment_Request
         $formFields['CANCELURL'] = $this->getConfig()->getCancelUrl();
         $formFields['BACKURL'] = $this->getConfig()->getCancelUrl();
 
+        $formFields['FP_ACTIV'] = $this->isFingerPrintingActive($order) ? '1' : '0';
+
         return $formFields;
+    }
+
+    /**
+     * Will return the combination of activiation via config and the state of consent of the customer
+     *
+     * @param $order
+     *
+     * @return bool
+     */
+    protected function isFingerPrintingActive($order)
+    {
+        return $this->getConfig()->getDeviceFingerPrinting($order->getStoreId())
+        && Mage::getSingleton('customer/session')->getData(Netresearch_OPS_Model_Payment_Abstract::FINGERPRINT_CONSENT_SESSION_KEY);
     }
 
     /**
@@ -551,7 +606,7 @@ class Netresearch_OPS_Helper_Payment_Request
     }
 
     /**
-     * Returns item array for Ingenico Payment Services request for the specified item
+     * Returns item array for Ingenico ePayments request for the specified item
      *
      * @param $count
      * @param $item

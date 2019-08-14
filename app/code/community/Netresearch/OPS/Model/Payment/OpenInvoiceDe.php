@@ -69,7 +69,8 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceDe
             ->getSource()
             ->getOptionText($order->getCustomerGender());
 
-        $formFields['CIVILITY']      = $gender == 'Male' ? 'Herr' : 'Frau';
+	    $formFields[ 'CIVILITY' ]               = $gender == 'Male' ? 'Herr' : 'Frau';
+	    $formFields[ 'ECOM_CONSUMER_GENDER' ]   = $gender == 'Male' ? 'M' : 'F';
 
         if (!$this->getConfig()->canSubmitExtraParameter($order->getStoreId())) {
             // add the shipto parameters even if the submitOption is false, because they are required for OpenInvoice

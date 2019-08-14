@@ -145,47 +145,25 @@ class Netresearch_OPS_Test_Helper_Payment_RequestTest extends EcomDev_PHPUnit_Te
         $this->assertEquals('DF', $this->getRequestHelper()->getIsoRegionCode($address));
     }
 
-    public function testGetTemplateParamsTemplateMode()
+    public function testGetTemplateParamsIframeMode()
     {
-        $this->markTestIncomplete('Depends on PCI release');
-
         $config = $this->getModelMock('ops/config', array('getConfigData'));
         $config->expects($this->any())
             ->method('getConfigData')
-            ->will($this->returnValue(Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_TEMPLATE));
+            ->will($this->returnValue(Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_IFRAME));
         $helper = Mage::helper('ops/payment_request');
         $helper->setConfig($config);
 
         $params = $helper->getTemplateParams();
-        $this->assertArrayNotHasKey('PARAMPLUS', $params);
-        $this->assertArrayNotHasKey('TITLE', $params);
-        $this->assertArrayHasKey('TP', $params);
 
-    }
-
-    public function testGetTemplateParamsInternalTemplateMode()
-    {
-        $this->markTestIncomplete('Depends on PCI release');
-
-        $config = $this->getModelMock('ops/config', array('getConfigData'));
-        $config->expects($this->any())
-            ->method('getConfigData')
-            ->will($this->returnValue(Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_MAGENTO_INTERNAL));
-        $helper = Mage::helper('ops/payment_request');
-        $helper->setConfig($config);
-
-        $params = $helper->getTemplateParams();
-        $this->assertArrayNotHasKey('PARAMPLUS', $params);
-        $this->assertArrayNotHasKey('TITLE', $params);
-        $this->assertArrayHasKey('TP', $params);
-        $this->assertEquals($config->getPayPageTemplate(), $params['TP']);
-
+        $this->assertArrayHasKey('PARAMPLUS', $params);
+        $this->assertEquals('IFRAME=1', $params['PARAMPLUS']);
+        $this->assertArrayHasKey('TITLE', $params);
+        $this->assertArrayNotHasKey('TP', $params);
     }
 
     public function testGetTemplateParamsNoMode()
     {
-        $this->markTestIncomplete('Depends on PCI release');
-
         $config = $this->getModelMock('ops/config', array('getConfigData'));
         $config->expects($this->any())
             ->method('getConfigData')
@@ -194,10 +172,26 @@ class Netresearch_OPS_Test_Helper_Payment_RequestTest extends EcomDev_PHPUnit_Te
         $helper->setConfig($config);
 
         $params = $helper->getTemplateParams();
+
         $this->assertArrayNotHasKey('PARAMPLUS', $params);
         $this->assertArrayNotHasKey('TITLE', $params);
         $this->assertArrayNotHasKey('TP', $params);
-        $this->isEmpty($params);
+
+    }
+
+    public function testGetTemplateParamsRedirectMode()
+    {
+        $config = $this->getModelMock('ops/config', array('getConfigData'));
+        $config->expects($this->any())
+            ->method('getConfigData')
+            ->will($this->returnValue(Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_REDIRECT));
+        $helper = Mage::helper('ops/payment_request');
+        $helper->setConfig($config);
+
+        $params = $helper->getTemplateParams();
+        $this->assertArrayNotHasKey('PARAMPLUS', $params);
+        $this->assertArrayHasKey('TITLE', $params);
+        $this->assertArrayNotHasKey('TP', $params);
     }
 
     public function testExtractOrderItemParametersWithAllItems()
@@ -271,4 +265,56 @@ class Netresearch_OPS_Test_Helper_Payment_RequestTest extends EcomDev_PHPUnit_Te
         $this->assertArrayNotHasKey('ITEMID2', $formFields);
         $this->assertArrayNotHasKey('ITEMID3', $formFields);
     }
+
+    public function testGetTemplateParamsTemplateMode()
+    {
+        $config = $this->getModelMock('ops/config', array('getConfigData'));
+        $config->expects($this->any())
+            ->method('getConfigData')
+            ->will($this->returnValue(Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_OPS_TEMPLATE));
+        $helper = Mage::helper('ops/payment_request');
+        $helper->setConfig($config);
+
+        $params = $helper->getTemplateParams();
+        $this->assertArrayNotHasKey('PARAMPLUS', $params);
+        $this->assertArrayNotHasKey('TITLE', $params);
+        $this->assertArrayHasKey('TP', $params);
+
+    }
+
+    public function testGetTemplateParamsInternalTemplateMode()
+    {
+        $config = $this->getModelMock('ops/config', array('getConfigData'));
+        $config->expects($this->any())
+            ->method('getConfigData')
+            ->will($this->returnValue(Netresearch_OPS_Model_Payment_Abstract::TEMPLATE_MAGENTO_INTERNAL));
+        $helper = Mage::helper('ops/payment_request');
+        $helper->setConfig($config);
+
+        $params = $helper->getTemplateParams();
+        $this->assertArrayNotHasKey('PARAMPLUS', $params);
+        $this->assertArrayNotHasKey('TITLE', $params);
+        $this->assertArrayHasKey('TP', $params);
+        $this->assertEquals($config->getPayPageTemplate(), $params['TP']);
+    }
+
+    public function testGetMandatoryRequestFieldsWithFPActiveOff()
+    {
+        $payment = Mage::getModel('sales/order_payment');
+        $payment->setMethod('ops_cc');
+        $order = Mage::getModel('sales/order');
+        $order->setStoreId(0)->setPayment($payment);
+        $subject = Mage::helper('ops/payment_request');
+        $sessionMock = $this->mockSession('customer/session', array('getData'));
+        $sessionMock->expects($this->any())
+            ->method('getData')
+            ->with(Netresearch_OPS_Model_Payment_Abstract::FINGERPRINT_CONSENT_SESSION_KEY)
+            ->will($this->returnValue(true));
+
+        $params = $subject->getMandatoryRequestFields($order);
+
+        $this->assertEquals(0, $params['FP_ACTIV']);
+
+    }
+
 }

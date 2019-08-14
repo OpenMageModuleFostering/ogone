@@ -6,7 +6,7 @@ class Netresearch_OPS_Test_Model_Payment_Kwixo_AbstractTest
 
     /**
      * @test
-     * @loadFixture ../../../../../var/fixtures/orders.yaml
+     * @loadFixture orders.yaml
      */
     public function testGetMethodDependendFormFields()
     {
@@ -30,6 +30,8 @@ class Netresearch_OPS_Test_Model_Payment_Kwixo_AbstractTest
 
         $formFields = Mage::getModel('ops/payment_kwixo_abstract')
             ->getMethodDependendFormFields($order);
+
+
         $this->assertTrue(array_key_exists('CN', $formFields));
         $this->assertTrue(array_key_exists('OWNERZIP', $formFields));
         $this->assertTrue(array_key_exists('OWNERCTY', $formFields));

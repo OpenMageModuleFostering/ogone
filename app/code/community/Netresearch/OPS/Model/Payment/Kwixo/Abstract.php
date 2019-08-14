@@ -461,7 +461,7 @@ class Netresearch_OPS_Model_Payment_Kwixo_Abstract
 
     /**
      * get question for fields with disputable value
-     * users are asked to correct the values before redirect to Ingenico Payment Services
+     * users are asked to correct the values before redirect to Ingenico ePayments
      *
      * @param Mage_Sales_Model_Order $order         Current order
      * @param array                  $requestParams Request parameters
@@ -477,7 +477,7 @@ class Netresearch_OPS_Model_Payment_Kwixo_Abstract
 
     /**
      * get an array of fields with disputable value
-     * users are asked to correct the values before redirect to Ingenico Payment Services
+     * users are asked to correct the values before redirect to Ingenico ePayments
      *
      * @param Mage_Sales_Model_Order $order         Current order
      * @param array                  $requestParams Request parameters

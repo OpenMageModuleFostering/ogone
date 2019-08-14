@@ -1,6 +1,5 @@
 <?php
-class Netresearch_OPS_Test_Model_Payment_AbstractTest
-    extends EcomDev_PHPUnit_Test_Case_Controller
+class Netresearch_OPS_Test_Model_Payment_AbstractTest extends EcomDev_PHPUnit_Test_Case_Controller
 {
     protected $model = null;
 
@@ -174,7 +173,7 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
 
         //Check for denied can cancel (processing and payment status 0)
         $order = Mage::getModel("sales/order")->load(13);
-        $this->assertFalse($opsAbstractPayment->canCancelManually($order));
+        $this->assertTrue($opsAbstractPayment->canCancelManually($order));
     }
 
 
@@ -223,63 +222,6 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
                 $paymentModel, array('ops_close_transaction' => 'ON')
             )
         );
-    }
-
-
-    /**
-     * @test
-     * @loadFixture ../../../../var/fixtures/orders.yaml
-     */
-    public function testCanRefund()
-    {
-        $paymentModel = Mage::getModel('ops/payment_abstract');
-        Mage::app()->getRequest()->setParam('order_id', 17);
-        $this->assertFalse($paymentModel->canRefund());
-
-        Mage::app()->getRequest()->setParam('order_id', 18);
-        $this->assertTrue($paymentModel->canRefund());
-
-        Mage::app()->getRequest()->setParam('order_id', 11);
-        $helperMock = $this->getHelperMock(
-            'ops/directlink', array('hasPaymentTransactions')
-        );
-        $helperMock->expects($this->any())
-            ->method('hasPaymentTransactions')
-            ->will($this->returnValue(false));
-        $this->replaceByMock('helper', 'ops/directlink', $helperMock);
-
-        $this->assertTrue($paymentModel->canRefund());
-
-        $helperMock = $this->getHelperMock(
-            'ops/directlink', array('hasPaymentTransactions')
-        );
-        $helperMock->expects($this->any())
-            ->method('hasPaymentTransactions')
-            ->will($this->returnValue(true));
-        $this->replaceByMock('helper', 'ops/directlink', $helperMock);
-
-        $helperMock = $this->getHelperMock('ops/data', array('redirect'));
-        $this->replaceByMock('helper', 'ops/data', $helperMock);
-
-        $paymentModel->canRefund();
-        $messages = Mage::getSingleton('core/session')->getMessages();
-        $messageItems = $messages->getItems();
-        $message = array_pop($messageItems);
-        $this->assertEquals(
-            Mage::helper('ops/data')->__(
-                'There is already one creditmemo in the queue. The Creditmemo will be created automatically as soon as Ingenico Payment Services sends an acknowledgement.'
-            ), $message->getText()
-        );
-
-
-        $helperMock = $this->getHelperMock(
-            'ops/directlink', array('hasPaymentTransactions')
-        );
-        $helperMock->expects($this->any())
-            ->method('hasPaymentTransactions')
-            ->will($this->throwException(new Exception('foo')));
-        $this->replaceByMock('helper', 'ops/directlink', $helperMock);
-        $this->assertTrue($paymentModel->canRefund());
     }
 
 
@@ -441,53 +383,9 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
         $this->assertArrayHasKey('EXCEPTIONURL', $formFields);
         $this->assertArrayHasKey('CANCELURL', $formFields);
         $this->assertEquals('NRMAGENTO', $formFields['PSPID']);
-        $this->assertEquals(
-            '2d9f92d6f3955847ab2db427be75fe7eb0cde045', $formFields['SHASIGN']
-        );
+        $this->assertEquals('2d9f92d6f3955847ab2db427be75fe7eb0cde045', $formFields['SHASIGN']);
     }
 
-    public function testGetFormFieldsWithTPParam()
-    {
-        $this->markTestIncomplete('Depends on PCI release');
-
-        $paymentModel = $this->getModelMock(
-            'ops/payment_abstract', array('getMethodDependendFormFields')
-        );
-        $configMock = $this->getModelMock(
-            'ops/config', array('getPSPID', 'getconfigData')
-        );
-        $configMock->expects($this->once())
-            ->method('getPSPID')
-            ->with(null)
-            ->will($this->returnValue('NRMAGENTO'));
-        $configMock->expects($this->any())
-            ->method('getConfigData')
-//            ->with('template')
-            ->will($this->returnValue('spo'));
-        $this->replaceByMock('model', 'ops/config', $configMock);
-        $helperMock = $this->getHelperMock('ops/payment', array('getShaSign'));
-        $helperMock->expects($this->any())
-            ->method('getSHASign')
-            ->with(
-                $this->anything(),
-                $this->anything(),
-                null
-            )
-            ->will($this->returnValue('SHA123'));
-        $this->replaceByMock('helper', 'ops/payment', $helperMock);
-        $order = new Varien_Object();
-        $payment = new Varien_Object();
-        $payment->setMethodInstance(Mage::getModel('ops/payment_cc'));
-        $order->setPayment($payment);
-        $formFields = $paymentModel->getFormFields($order, array());
-        $this->assertArrayHasKey('PSPID', $formFields);
-        $this->assertArrayHasKey('SHASIGN', $formFields);
-        $this->assertArrayHasKey('TP', $formFields);
-        $this->assertEquals('NRMAGENTO', $formFields['PSPID']);
-        $this->assertEquals(
-            '2d9f92d6f3955847ab2db427be75fe7eb0cde045', $formFields['SHASIGN']
-        );
-    }
     /**
      * @loadFixture ../../../../var/fixtures/orders.yaml
      */
@@ -587,24 +485,6 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
     /**
      * @loadFixture ../../../../var/fixtures/orders.yaml
      */
-    public function testVoidWithOpsAutoVoid()
-    {
-        Mage::register('ops_auto_void', true);
-        $paymentModel = $this->getModelMock(
-            'ops/payment_abstract',
-            array('canVoid')
-        );
-        $paymentModel->expects($this->any())
-            ->method('canVoid')
-            ->will($this->returnValue(true));
-        $payment = Mage::getModel('sales/order_payment');
-        $paymentModel->void($payment, 11.90);
-        $this->assertNull(Mage::registry('ops_auto_void'));
-    }
-
-    /**
-     * @loadFixture ../../../../var/fixtures/orders.yaml
-     */
     public function testVoidWithExistingVoidTransactionLeadsToRedirect()
     {
         $helperMock = $this->getHelperMock('ops/directlink', array('checkExistingTransact'));
@@ -615,7 +495,7 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
             ->will($this->returnValue(true));
         $this->replaceByMock('helper', 'ops/directlink', $helperMock);
         $order = Mage::getModel('sales/order')->load(11);
-
+        $order->getPayment()->setAdditionalInformation('status', 5);
         $paymentModel = $this->getModelMock(
             'ops/payment_abstract',
             array('canVoid')
@@ -628,13 +508,13 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
         $dataHelperMock = $this->getHelperMock('ops/data', array('redirect'));
         $this->replaceByMock('helper', 'ops/data', $dataHelperMock);
 
-        Mage::getSingleton('core/session')->getMessages(true);
+        Mage::getSingleton('admin/session')->getMessages(true);
         $noticeCountBefore = sizeof(
-            Mage::getSingleton('core/session')->getItemsByType('notice')
+            Mage::getSingleton('admin/session')->getItemsByType('error')
         );
         $paymentModel->void($order->getPayment());
-        $notices = Mage::getSingleton('core/session')->getMessages()->getItemsByType(
-            'notice'
+        $notices = Mage::getSingleton('admin/session')->getMessages()->getItemsByType(
+            'error'
         );
         $noticeCountAfter = sizeof($notices);
         $this->assertGreaterThan($noticeCountBefore, $noticeCountAfter);
@@ -647,64 +527,13 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
 
     }
 
-    /**
-     * @loadFixture ../../../../var/fixtures/orders.yaml
-     */
-    public function testVoidWithExistingCaptureLeadsToRedirect()
-    {
-
-        $paymentModel = $this->getModelMock(
-            'ops/payment_abstract',
-            array('canVoid')
-        );
-        $paymentModel->expects($this->any())
-            ->method('canVoid')
-            ->will($this->returnValue(true));
-
-
-        $dataHelperMock = $this->getHelperMock('ops/data', array('redirect'));
-        $this->replaceByMock('helper', 'ops/data', $dataHelperMock);
-
-
-        $helperMock = $this->getHelperMock('ops/directlink', array('checkExistingTransact'));
-        $closure = function ($transactionType, $orderId) {
-            $result = false;
-            if ($transactionType == Netresearch_OPS_Model_Payment_Abstract::OPS_CAPTURE_TRANSACTION_TYPE) {
-                $result = true;
-            }
-            return $result;
-        };
-
-        $helperMock
-            ->expects($this->any())
-            ->method('checkExistingTransact')
-            ->will($this->returnCallback($closure));
-        $this->replaceByMock('helper', 'ops/directlink', $helperMock);
-
-        Mage::getSingleton('core/session')->getMessages(true);
-        $noticeCountBefore = sizeof(
-            Mage::getSingleton('core/session')->getItemsByType('notice')
-        );
-
-        $order = Mage::getModel('sales/order')->load(11);
-
-        $paymentModel->void($order->getPayment());
-        $notices = Mage::getSingleton('core/session')->getMessages()->getItemsByType(
-            'notice'
-        );
-        $noticeCountAfter = sizeof($notices);
-        $this->assertGreaterThan($noticeCountBefore, $noticeCountAfter);
-        $this->assertEquals(
-            $dataHelperMock->__('There is one capture request waiting. Please wait until this request is acknowledged.'),
-            current($notices)->getText()
-        );
-    }
 
     /**
      * @loadFixture ../../../../var/fixtures/orders.yaml
      */
     public function testVoidFailsWhenRequestThrowsException()
     {
+        /** @var Netresearch_OPS_Model_Payment_Abstract $paymentModel */
         $paymentModel = $this->getModelMock(
             'ops/payment_abstract',
             array('canVoid')
@@ -730,6 +559,7 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
             );
         $this->replaceByMock('model', 'ops/api_directlink', $apiClientMock);
         $order = Mage::getModel('sales/order')->load(11);
+        $order->getPayment()->setAdditionalInformation('status', 5);
         try {
             $paymentModel->void($order->getPayment());
         } catch (Exception $e) {
@@ -767,12 +597,13 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
                                    )));
         $this->replaceByMock('model', 'ops/api_directlink', $apiClientMock);
         $order = Mage::getModel('sales/order')->load(11);
+        $order->getPayment()->setAdditionalInformation('status', 5);
         try {
             $paymentModel->void($order->getPayment());
         } catch (Exception $e) {
-            $this->assertEquals(666, $order->getPayment()->getAdditionalInformation('status'));
+            $this->assertEquals(5, $order->getPayment()->getAdditionalInformation('status'));
             $helper = Mage::helper('ops/data');
-            $this->assertEquals($helper->__('Void order failed. Ingenico Payment Services status: %s.', 666), $e->getMessage());
+            $this->assertEquals($helper->__('Can not handle status %s.', 666), $e->getMessage());
         }
     }
 
@@ -810,29 +641,18 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
             ->method('performRequest')
             ->will(
                 $this->returnValue(array(
-                                        'STATUS' => Netresearch_OPS_Model_Payment_Abstract::OPS_VOID_WAITING,
+                                        'STATUS' => Netresearch_OPS_Model_Status::DELETION_WAITING,
                                         'PAYID'  => '4711',
                                         'PAYIDSUB' => '0815'
                                    )));
         $this->replaceByMock('model', 'ops/api_directlink', $apiClientMock);
         $order = Mage::getModel('sales/order')->load(11);
+        $order->getPayment()->setAdditionalInformation('status', 5);
 
-        Mage::getSingleton('core/session')->getMessages(true);
-        $noticeCountBefore = sizeof(
-            Mage::getSingleton('core/session')->getItemsByType('notice')
-        );
-
+        $paymentModel->setInfoInstance($order->getPayment());
         $paymentModel->void($order->getPayment());
-        $notices = Mage::getSingleton('core/session')->getMessages()->getItemsByType(
-            'notice'
-        );
-        $noticeCountAfter = sizeof($notices);
-        $this->assertGreaterThan($noticeCountBefore, $noticeCountAfter);
-        $this->assertEquals(
-            $dataHelperMock->__('The void request is sent. Please wait until the void request will be accepted.'),
-            current($notices)->getText()
-        );
-
+        $this->assertTrue($order->getPayment()->hasMessage());
+        $this->assertNotEmpty($order->getPayment()->getMessage());
     }
 
     /**
@@ -869,17 +689,18 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
             ->method('performRequest')
             ->will(
                 $this->returnValue(array(
-                                        'STATUS' => Netresearch_OPS_Model_Payment_Abstract::OPS_VOIDED_ACCEPTED,
+                                        'STATUS' => Netresearch_OPS_Model_Status::AUTHORIZED_AND_CANCELLED,
                                         'PAYID'  => '4711',
                                         'PAYIDSUB' => '0815'
                                    )));
         $this->replaceByMock('model', 'ops/api_directlink', $apiClientMock);
         $order = Mage::getModel('sales/order')->load(11);
-
+        $order->getPayment()->setAdditionalInformation('status', 5);
+        $paymentModel->setInfoInstance($order->getPayment());
         $paymentModel->void($order->getPayment());
 
         $this->assertEquals(
-            Netresearch_OPS_Model_Payment_Abstract::OPS_VOIDED_ACCEPTED,
+            Netresearch_OPS_Model_Status::AUTHORIZED_AND_CANCELLED,
             $order->getPayment()->getAdditionalInformation('status')
         );
 
@@ -925,6 +746,78 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
         $this->assertEquals('HTML', Mage::getModel('ops/payment_abstract')->getOpsHtmlAnswer($order->getPayment()));
     }
 
+    /**
+     * @loadFixture              orders.yaml
+     * @expectedException Mage_Core_Exception
+     * @expectedExceptionMessage The payment review action is unavailable.
+     */
+    public function testAcceptPaymentNotSupportedState()
+    {
+        $payment = Mage::getModel('payment/info');
+        $payment->setAdditionalInformation('status', 99);
+        Mage::getModel('ops/payment_abstract')->acceptPayment($payment);
+    }
+
+
+    /**
+     * @loadFixture orders.yaml
+     * @expectedException Mage_Core_Exception
+     * @expectedExceptionMessage The order can not be accepted via Magento. For the actual status of the payment check the Ingenico ePayments backend.
+     */
+    public function testAcceptPaymentSupportedState()
+    {
+        $order = Mage::getModel('sales/order')->load(25);
+        $order->getPayment()->setAdditionalInformation('status', 57);
+
+        $result = Mage::getModel('ops/payment_abstract')->acceptPayment($order->getPayment());
+    }
+
+    /**
+     * @loadFixture              orders.yaml
+     * @expectedException Mage_Core_Exception
+     * @expectedExceptionMessage The payment review action is unavailable.
+     */
+    public function testDenyPaymentNotSupportedState()
+    {
+        $payment = Mage::getModel('payment/info');
+        $payment->setAdditionalInformation('status', 99);
+        Mage::getModel('ops/payment_abstract')->denyPayment($payment);
+    }
+
+
+    /**
+     * @loadFixture orders.yaml
+     */
+    public function testDenyPaymentSupportedState()
+    {
+        $order = Mage::getModel('sales/order')->load(25);
+        $order->getPayment()->setAdditionalInformation('status', 57);
+
+        $result = Mage::getModel('ops/payment_abstract')->denyPayment($order->getPayment());
+        $this->assertTrue($result);
+    }
+
+
+    /**
+     * @loadFixture orders.yaml
+     */
+    public function testCanReviewPaymentFalse()
+    {
+        $order = Mage::getModel('sales/order')->load(25);
+        $order->getPayment()->setAdditionalInformation('status', 5);
+        $this->assertFalse(Mage::getModel('ops/payment_abstract')->canReviewPayment($order->getPayment()));
+    }
+
+    /**
+     * @loadFixture orders.yaml
+     */
+    public function testCanReviewPaymentTrue()
+    {
+        $order = Mage::getModel('sales/order')->load(25);
+        $order->getPayment()->setAdditionalInformation('status', 57);
+        $this->assertTrue(Mage::getModel('ops/payment_abstract')->canReviewPayment($order->getPayment()));
+    }
+
     protected function getOwnerParams()
     {
         return $ownerParams = array(
@@ -952,6 +845,7 @@ class Netresearch_OPS_Test_Model_Payment_AbstractTest
 
         return $paramValues;
     }
+
 
 
 }

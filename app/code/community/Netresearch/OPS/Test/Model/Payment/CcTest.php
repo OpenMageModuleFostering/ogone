@@ -123,13 +123,16 @@ class Netresearch_OPS_Test_Model_Payment_CcTest extends EcomDev_PHPUnit_Test_Cas
                 ->will($this->returnValue(true));
             $this->replaceByMock('helper', 'ops/version', $helperMock);
 
-            $quote       = $this->getModelMock('sales/quote', array('getItemsCount', 'getBaseGrandTotal'));
+            $quote       = $this->getModelMock('sales/quote', array('getItemsCount', 'getBaseGrandTotal', 'isNominal'));
             $quote->expects($this->once())
                 ->method('getItemsCount')
                 ->will($this->returnValue(1));
             $quote->expects($this->any())
                 ->method('getBaseGrandTotal')
                 ->will($this->returnValue(0.0));
+            $quote->expects($this->any())
+                ->method('isNominal')
+                ->will($this->returnValue(false));
             $this->assertTrue($this->_model->isApplicableToQuote($quote, 128));
         }
     }
@@ -190,26 +193,6 @@ class Netresearch_OPS_Test_Model_Payment_CcTest extends EcomDev_PHPUnit_Test_Cas
         $this->replaceByMock('singleton', 'checkout/session', $checkoutSessionMock);
         $this->assertEquals('VISA', $this->_model->getOpsBrand(null));
 
-    }
-
-    public function testCanReviewPayment(){
-        $payment = Mage::getModel('sales/order_payment');
-        $payment->setAdditionalInformation('status', Netresearch_OPS_Model_Payment_Abstract::OPS_INVALID);
-        $ccMethod = Mage::getModel('ops/payment_cc');
-        $this->assertTrue($ccMethod->canReviewPayment($payment));
-
-        $payment->setAdditionalInformation('status', Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING);
-        $this->assertFalse($ccMethod->canReviewPayment($payment));
-    }
-
-    public function testDenyPayment(){
-        $payment = Mage::getModel('sales/order_payment');
-        $payment->setAdditionalInformation('status', Netresearch_OPS_Model_Payment_Abstract::OPS_INVALID);
-        $ccMethod = Mage::getModel('ops/payment_cc');
-        $this->assertTrue($ccMethod->denyPayment($payment));
-
-        $payment->setAdditionalInformation('status', Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING);
-        $this->assertFalse($ccMethod->denyPayment($payment));
     }
 
     public function testIsAvailable()

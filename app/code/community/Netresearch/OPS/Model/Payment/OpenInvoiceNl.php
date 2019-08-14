@@ -1,10 +1,10 @@
 <?php
 /**
  * Netresearch_OPS_Model_Payment_OpenInvoiceNl
- * 
- * @package   
+ *
+ * @package
  * @copyright 2011 Netresearch
- * @author    Thomas Kappel <thomas.kappel@netresearch.de> 
+ * @author    Thomas Kappel <thomas.kappel@netresearch.de>
  * @license   OSL 3.0
  */
 class Netresearch_OPS_Model_Payment_OpenInvoiceNl
@@ -46,7 +46,7 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceNl
     }
 
     /**
-     * get some method dependend form fields 
+     * get some method dependend form fields
      *
      * @param Mage_Sales_Model_Quote $order
      * @return array
@@ -69,6 +69,7 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceNl
             ->getOptionText($order->getCustomerGender());
 
         $formFields['CIVILITY']                         = $gender == 'Male' ? 'M' : 'V';
+        $formFields['ECOM_CONSUMER_GENDER']             = $gender == 'Male' ? 'M' : 'V';
         $formFields['OWNERADDRESS']                     = trim($splittedStreet[1]);
         $formFields['ECOM_BILLTO_POSTAL_STREET_NUMBER'] = trim($splittedStreet[2]);
         $formFields['OWNERZIP']                         = $billingAddress->getPostcode();
@@ -113,7 +114,7 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceNl
 
     /**
      * get question for fields with disputable value
-     * users are asked to correct the values before redirect to Ingenico Payment Services
+     * users are asked to correct the values before redirect to Ingenico ePayments
      *
      * @param Mage_Sales_Model_Order $order         Current order
      * @param array                  $requestParams Request parameters
@@ -126,7 +127,7 @@ class Netresearch_OPS_Model_Payment_OpenInvoiceNl
 
     /**
      * get an array of fields with disputable value
-     * users are asked to correct the values before redirect to Ingenico Payment Services
+     * users are asked to correct the values before redirect to Ingenico ePayments
      *
      * @param Mage_Sales_Model_Order $order         Current order
      * @param array                  $requestParams Request parameters

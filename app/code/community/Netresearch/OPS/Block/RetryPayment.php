@@ -1,6 +1,6 @@
 <?php
 /**
- * ${PACKAGE}
+ * Netresearch_OPS
  *
  * NOTICE OF LICENSE
  *
@@ -22,8 +22,8 @@
 /**
  * RetryPayment.php
  *
- * @category ${CATEGORY}
- * @package  ${PACKAGE}
+ * @category payment
+ * @package  Netresearch_OPS
  * @author   Paul Siedler <paul.siedler@netresearch.de>
  */ 
 

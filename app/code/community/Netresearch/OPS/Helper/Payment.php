@@ -11,7 +11,7 @@
  */
 class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
 {
-    const HASH_ALGO = 'sha1';
+    protected $shaAlgorithm = null;
 
     /**
      * Get checkout session namespace
@@ -26,7 +26,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Get checkout session namespace
      *
-     * @return Mage_Checkout_Model_Session
+     * @return Netresearch_OPS_Model_Config
      */
     protected function getConfig()
     {
@@ -34,20 +34,34 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Get encrypt / decrypt algorithm
+     *
+     * @return string
+     */
+    public function getCryptMethod()
+    {
+        if (null === $this->shaAlgorithm) {
+            $this->shaAlgorithm = $this->getConfig()->getConfigData('secret_key_type');
+        }
+
+        return $this->shaAlgorithm;
+    }
+
+    /**
      * Crypt Data by SHA1 ctypting algorithm by secret key
      *
-     * @param array $data
+     * @param array  $data
      * @param string $key
      *
-     * @return hash
+     * @return string hash
      */
     public function shaCrypt($data, $key = '')
     {
         if (is_array($data)) {
-            return hash(self::HASH_ALGO, implode("", $data));
+            return hash($this->getCryptMethod(), implode("", $data));
         }
         if (is_string($data)) {
-            return hash(self::HASH_ALGO, $data);
+            return hash($this->getCryptMethod(), $data);
         } else {
             return "";
         }
@@ -56,7 +70,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Check hash crypted by SHA1 with existing data
      *
-     * @param array $data
+     * @param array  $data
      * @param string $hash
      * @param string $key
      *
@@ -68,8 +82,8 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             $data = implode("", $data);
         }
 
-        $hashUtf8    = strtoupper(hash(self::HASH_ALGO, $data));
-        $hashNonUtf8 = strtoupper(hash(self::HASH_ALGO, utf8_encode($data)));
+        $hashUtf8 = strtoupper(hash($this->getCryptMethod(), $data));
+        $hashNonUtf8 = strtoupper(hash($this->getCryptMethod(), utf8_encode($data)));
 
         $helper = Mage::helper('ops');
         $helper->log($helper->__("Module Secureset: %s", $data));
@@ -88,7 +102,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
         $helper = Mage::helper('ops');
         $helper->log(
             $helper->__(
-                "Checking hashes\nHashed String by Magento: %s\nHashed String by Ingenico Payment Services: %s",
+                "Checking hashes\nHashed String by Magento: %s\nHashed String by Ingenico ePayments: %s",
                 $actual,
                 $hashFromOPS
             )
@@ -106,14 +120,14 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Return set of data which is ready for SHA crypt
      *
-     * @param array $data
+     * @param array  $data
      * @param string $key
      *
      * @return string
      */
     public function getSHAInSet($params, $SHAkey)
     {
-        $params          = $this->prepareParamsAndSort($params);
+        $params = $this->prepareParamsAndSort($params);
         $plainHashString = "";
         foreach ($params as $paramSet):
             if ($paramSet['value'] == '' || $paramSet['key'] == 'SHASIGN') {
@@ -183,7 +197,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      * We get some CC info from ops, so we must save it
      *
      * @param Mage_Sales_Model_Order $order
-     * @param array $ccInfo
+     * @param array                  $ccInfo
      *
      * @return Netresearch_OPS_ApiController
      */
@@ -210,14 +224,14 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         return in_array(
             $status, array(
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_UNKNOWN,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_REQUESTED,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_PROCESSING,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_UNCERTAIN,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_WAITING_FOR_IDENTIFICATION
+                Netresearch_OPS_Model_Status::AUTHORIZED,
+                Netresearch_OPS_Model_Status::AUTHORIZATION_WAITING,
+                Netresearch_OPS_Model_Status::AUTHORIZED_UNKNOWN,
+                Netresearch_OPS_Model_Status::WAITING_CLIENT_PAYMENT,
+                Netresearch_OPS_Model_Status::PAYMENT_REQUESTED,
+                Netresearch_OPS_Model_Status::PAYMENT_PROCESSING,
+                Netresearch_OPS_Model_Status::PAYMENT_UNCERTAIN,
+                Netresearch_OPS_Model_Status::WAITING_FOR_IDENTIFICATION
             )
         );
     }
@@ -226,10 +240,10 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         return in_array(
             $status, array(
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_UNKNOWN,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT
+                Netresearch_OPS_Model_Status::AUTHORIZED,
+                Netresearch_OPS_Model_Status::AUTHORIZATION_WAITING,
+                Netresearch_OPS_Model_Status::AUTHORIZED_UNKNOWN,
+                Netresearch_OPS_Model_Status::WAITING_CLIENT_PAYMENT
             )
         );
     }
@@ -238,9 +252,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         return in_array(
             $status, array(
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_REQUESTED,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_PROCESSING,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_UNCERTAIN
+                Netresearch_OPS_Model_Status::PAYMENT_REQUESTED,
+                Netresearch_OPS_Model_Status::PAYMENT_PROCESSING,
+                Netresearch_OPS_Model_Status::PAYMENT_UNCERTAIN
             )
         );
     }
@@ -253,61 +267,46 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * apply ops state for order
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      *
      * @return void
      */
     public function applyStateForOrder($order, $params)
     {
-        /**
-         * OpenInvoiceDe should always have status code 41, which is a final state in this case
-         */
-        if ($order->getPayment()->getMethodInstance()->getCode() == 'ops_openInvoiceDe'
-            && $params['STATUS'] == Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT
-        ) {
-            $params['STATUS'] = Netresearch_OPS_Model_Payment_Abstract::OPS_OPEN_INVOICE_DE_PROCESSED;
-        }
+
+        Mage::getModel('ops/response_handler')->processResponse($params, $order->getPayment()->getMethodInstance());
+        $order->getPayment()->save();
 
         $feedbackStatus = '';
 
         switch ($params['STATUS']) {
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_WAITING_FOR_IDENTIFICATION : //3D-Secure
-                $this->waitOrder($order, $params);
+            case Netresearch_OPS_Model_Status::WAITING_FOR_IDENTIFICATION : //3D-Secure
                 $feedbackStatus = Netresearch_OPS_Model_Status_Feedback::OPS_ORDER_FEEDBACK_STATUS_ACCEPT;
                 break;
-
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_KWIXO:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_UNKNOWN:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT:
-                $this->acceptOrder($order, $params);
+            case Netresearch_OPS_Model_Status::AUTHORIZED:
+            case Netresearch_OPS_Model_Status::AUTHORIZED_WAITING_EXTERNAL_RESULT:
+            case Netresearch_OPS_Model_Status::AUTHORIZATION_WAITING:
+            case Netresearch_OPS_Model_Status::AUTHORIZED_UNKNOWN:
+            case Netresearch_OPS_Model_Status::WAITING_CLIENT_PAYMENT:
                 $feedbackStatus = Netresearch_OPS_Model_Status_Feedback::OPS_ORDER_FEEDBACK_STATUS_ACCEPT;
                 break;
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_REQUESTED:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_PROCESSING:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_OPEN_INVOICE_DE_PROCESSED:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_PROCESSED_MERCHANT:
-                $this->acceptOrder($order, $params, 1);
+            case Netresearch_OPS_Model_Status::PAYMENT_REQUESTED:
+            case Netresearch_OPS_Model_Status::PAYMENT_PROCESSING:
+            case Netresearch_OPS_Model_Status::PAYMENT_PROCESSED_BY_MERCHANT:
                 $feedbackStatus = Netresearch_OPS_Model_Status_Feedback::OPS_ORDER_FEEDBACK_STATUS_ACCEPT;
                 break;
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_AUTH_REFUSED:
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_REFUSED:
-                $this->declineOrder($order, $params);
+            case Netresearch_OPS_Model_Status::AUTHORISATION_DECLINED:
+            case Netresearch_OPS_Model_Status::PAYMENT_REFUSED:
+//                $this->declineOrder($order, $params);
                 $feedbackStatus = Netresearch_OPS_Model_Status_Feedback::OPS_ORDER_FEEDBACK_STATUS_DECLINE;
                 break;
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_CANCELED_BY_CUSTOMER:
-                $this->cancelOrder($order, $params, Mage_Sales_Model_Order::STATE_CANCELED,
-                                   Mage::helper('ops')->__(
-                                       'Order canceled on Ingenico Payment Services side. Status: %s, Payment ID: %s.',
-                                       Mage::helper('ops')->getStatusText($params['STATUS']),
-                                       $params['PAYID']));
+            case Netresearch_OPS_Model_Status::CANCELED_BY_CUSTOMER:
                 $feedbackStatus = Netresearch_OPS_Model_Status_Feedback::OPS_ORDER_FEEDBACK_STATUS_CANCEL;
                 break;
             default:
                 //all unknown transaction will accept as exceptional
-                $this->handleException($order, $params);
+//                $this->handleException($order, $params);
                 $feedbackStatus = Netresearch_OPS_Model_Status_Feedback::OPS_ORDER_FEEDBACK_STATUS_EXCEPTION;
         }
 
@@ -317,8 +316,8 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Process success action by accept url
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      */
     public function acceptOrder($order, $params, $instantCapture = 0)
     {
@@ -332,11 +331,11 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
         }
 
         try {
-            if (false === $this->forceAuthorize($order) &&
-                ($this->getConfig()->getConfigData('payment_action')
+            if (false === $this->forceAuthorize($order)
+                && ($this->getConfig()->getConfigData('payment_action')
                     == Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE_CAPTURE
                     || $instantCapture)
-                && $params['STATUS'] != Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT
+                && $params['STATUS'] != Netresearch_OPS_Model_Status::WAITING_CLIENT_PAYMENT
             ) {
                 $this->_processDirectSale($order, $params, $instantCapture);
             } else {
@@ -352,8 +351,8 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      * Set Payment Transaction Information
      *
      * @param Mage_Sales_Model_Order_Payment $payment Sales Payment Model
-     * @param array $params Request params
-     * @param string $action Action (accept|cancel|decline|wait|exception)
+     * @param array                          $params  Request params
+     * @param string                         $action  Action (accept|cancel|decline|wait|exception)
      */
     protected function setPaymentTransactionInformation(Mage_Sales_Model_Order_Payment $payment, $params, $action)
     {
@@ -364,7 +363,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
 
         /* In authorize mode we still have no authorization transaction for CC and DirectDebit payments,
          * so capture or cancel won't work. So we need to create a new authorization transaction for them
-         * when a payment was accepted by Ingenico Payment Services
+         * when a payment was accepted by Ingenico ePayments
          *
          * In exception-case we create the authorization-transaction too because some exception-cases can turn into accepted
          */
@@ -374,13 +373,18 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             $payment->setIsTransactionClosed(false);
             $isInline = $this->isInlinePayment($payment);
             /* create authorization transaction for non-inline pms */
-            if (false === $isInline || (array_key_exists('HTML_ANSWER', $params) || 0 < strlen($payment->getAdditionalInformation('HTML_ANSWER')))) {
+            if (false === $isInline
+                || (array_key_exists('HTML_ANSWER', $params)
+                    || 0 < strlen(
+                        $payment->getAdditionalInformation('HTML_ANSWER')
+                    ))
+            ) {
                 $payment->addTransaction("authorization", null, true, $this->__("Process outgoing transaction"));
             }
             $payment->setLastTransId($params['PAYID']);
         }
 
-        /* Ingenico Payment Services sends parameter HTML_ANSWER to trigger 3D secure redirection */
+        /* Ingenico ePayments sends parameter HTML_ANSWER to trigger 3D secure redirection */
         if (isset($params['HTML_ANSWER']) && ('ops_cc' == $code)) {
             $payment->setAdditionalInformation('HTML_ANSWER', $params['HTML_ANSWER']);
             $payment->setIsTransactionPending(true);
@@ -402,10 +406,10 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     }
 
     /**
-     * add fraud detection of Ingenico Payment Services to additional payment data
+     * add fraud detection of Ingenico ePayments to additional payment data
      *
      * @param Mage_Sales_Model_Order_Payment $payment
-     * @param array $params
+     * @param array                          $params
      */
     protected function setFraudDetectionParameters($payment, $params)
     {
@@ -433,12 +437,16 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      * Process cancel action by cancel url
      *
      * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param string[] $params Request params
      * @param string $status Order status
      * @param string $comment Order comment
+     * @throws Exception
+     * @deprecated
      */
     public function cancelOrder($order, $params, $status, $comment)
     {
+        //@TODO: remove obsolete function
+
         try {
             Mage::register('ops_auto_void', true); //Set this session value to true to allow cancel
             $this->cancelInvoices($order);
@@ -464,11 +472,13 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Process decline action by ops decline url
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      */
     public function declineOrder($order, $params)
     {
+        //@TODO: remove obsolete function
+
         try {
             Mage::register('ops_auto_void', true); //Set this session value to true to allow cancel
             $this->cancelInvoices($order);
@@ -477,7 +487,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 Mage_Sales_Model_Order::STATE_CANCELED,
                 Mage_Sales_Model_Order::STATE_CANCELED,
                 Mage::helper('ops')->__(
-                    'Order declined on ops side. Ingenico Payment Services status: %s, Payment ID: %s.',
+                    'Order declined on ops side. Ingenico ePayments status: %s, Payment ID: %s.',
                     Mage::helper('ops')->getStatusText($params['STATUS']),
                     $params['PAYID']
                 )
@@ -494,17 +504,19 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Wait for 3D secure confirmation
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      */
     public function waitOrder($order, $params)
     {
+
+        //@TODO: remove obsolete function
         try {
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW,
                 Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW,
                 Mage::helper('ops')->__(
-                    'Order is waiting for Ingenico Payment Services confirmation of 3D-Secure. Ingenico Payment Services status: %s, Payment ID: %s.',
+                    'Order is waiting for Ingenico ePayments confirmation of 3D-Secure. Ingenico ePayments status: %s, Payment ID: %s.',
                     Mage::helper('ops')->getStatusText($params['STATUS']),
                     $params['PAYID']
                 )
@@ -513,7 +525,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             $this->setPaymentTransactionInformation($order->getPayment(), $params, 'wait');
         } catch (Exception $e) {
             $this->_getCheckout()->addError(
-                Mage::helper('ops')->__('Error during 3D-Secure processing of Ingenico Payment Services. Error: %s', $e->getMessage())
+                Mage::helper('ops')->__('Error during 3D-Secure processing of Ingenico ePayments. Error: %s', $e->getMessage())
             );
             throw $e;
         }
@@ -522,11 +534,12 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Process exception action by ops exception url
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      */
     public function handleException($order, $params)
     {
+        //@TODO: remove obsolete function
         $exceptionMessage = $this->getPaymentExceptionMessage($params['STATUS']);
 
         if (!empty($exceptionMessage)) {
@@ -561,15 +574,15 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         $exceptionMessage = '';
         switch ($ops_status) {
-            case Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_UNCERTAIN :
+            case Netresearch_OPS_Model_Status::PAYMENT_UNCERTAIN :
                 $exceptionMessage = Mage::helper('ops')->__(
-                    'A technical problem arose during payment process, giving unpredictable result. Ingenico Payment Services status: %s.',
+                    'A technical problem arose during payment process, giving unpredictable result. Ingenico ePayments status: %s.',
                     Mage::helper('ops')->getStatusText($ops_status)
                 );
                 break;
             default:
                 $exceptionMessage = Mage::helper('ops')->__(
-                    'An unknown exception was thrown in the payment process. Ingenico Payment Services status: %s.',
+                    'An unknown exception was thrown in the payment process. Ingenico ePayments status: %s.',
                     Mage::helper('ops')->getStatusText($ops_status)
                 );
         }
@@ -580,14 +593,16 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     /**
      * Process Configured Payment Action: Direct Sale, create invoice if state is Pending
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      */
     protected function _processDirectSale($order, $params, $instantCapture = 0)
     {
+        //@TODO: remove obsolete function
+
         Mage::register('ops_auto_capture', true);
         $status = $params['STATUS'];
-        if ($status == Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT) {
+        if ($status == Netresearch_OPS_Model_Status::WAITING_CLIENT_PAYMENT) {
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PROCESSING,
                 Mage_Sales_Model_Order::STATE_PENDING_PAYMENT,
@@ -602,23 +617,23 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             }
 
             $order->save();
-        } elseif ($status == Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING) {
+        } elseif ($status == Netresearch_OPS_Model_Status::AUTHORIZATION_WAITING) {
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PROCESSING,
                 Mage_Sales_Model_Order::STATE_PENDING_PAYMENT,
-                Mage::helper('ops')->__('Authorization waiting from Ingenico Payment Services')
+                Mage::helper('ops')->__('Authorization waiting from Ingenico ePayments')
             );
             $order->save();
         } elseif (($order->getState() == Mage_Sales_Model_Order::STATE_PENDING_PAYMENT
-            || $instantCapture)
+                || $instantCapture)
             && !$this->isPaypalSpecialStatus($order->getPayment()->getMethodInstance(), $status)
         ) {
-            if ($status == Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED) {
+            if ($status == Netresearch_OPS_Model_Status::AUTHORIZED) {
                 if ($order->getStatus() != Mage_Sales_Model_Order::STATE_PENDING_PAYMENT) {
                     $order->setState(
                         Mage_Sales_Model_Order::STATE_PROCESSING,
                         Mage_Sales_Model_Order::STATE_PROCESSING,
-                        Mage::helper('ops')->__('Processed by Ingenico Payment Services')
+                        Mage::helper('ops')->__('Processed by Ingenico ePayments')
                     );
 
                 }
@@ -626,7 +641,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 $order->setState(
                     Mage_Sales_Model_Order::STATE_PROCESSING,
                     true,
-                    Mage::helper('ops')->__('Processed by Ingenico Payment Services')
+                    Mage::helper('ops')->__('Processed by Ingenico ePayments')
                 );
                 $order->save();
             }
@@ -643,9 +658,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 $this->sendInvoiceToCustomer($invoice);
 
                 $transactionSave = Mage::getModel('core/resource_transaction')
-                                       ->addObject($invoice)
-                                       ->addObject($invoice->getOrder())
-                                       ->save();
+                    ->addObject($invoice)
+                    ->addObject($invoice->getOrder())
+                    ->save();
 
                 /*
                  * If the payment method is a redirect-payment-method send the email
@@ -662,20 +677,27 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
 
             if ($this->isInlinePayment($order->getPayment())
                 && 0 < strlen(trim($order->getPayment()->getAdditionalInformation('HTML_ANSWER')))
-                && $order->getPayment()->getAdditionalInformation('status') == Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_REQUESTED
+                && $order->getPayment()->getAdditionalInformation('status') == Netresearch_OPS_Model_Status::PAYMENT_REQUESTED
             ) {
-                $order->getPayment()->setIsTransactionApproved(true)->registerPaymentReviewAction(Mage_Sales_Model_Order_Payment::REVIEW_ACTION_UPDATE, true)->save();
+                $order->getPayment()->setIsTransactionApproved(true)->registerPaymentReviewAction(
+                    Mage_Sales_Model_Order_Payment::REVIEW_ACTION_UPDATE, true
+                )->save();
                 $this->setInvoicesToPaid($order);
                 $order->getPayment()->getAuthorizationTransaction()->setIsClosed(true)->save();
-                $order->getPayment()->addTransaction(Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE, $order->getPayment())->setIsClosed(true)->save();
+                $order->getPayment()->addTransaction(
+                    Mage_Sales_Model_Order_Payment_Transaction::TYPE_CAPTURE, $order->getPayment()
+                )->setIsClosed(true)->save();
 
-                if($order->getEmailSent() != 1) {
+                if ($order->getEmailSent() != 1) {
                     $order->sendNewOrderEmail();
                 }
 
                 $order->save();
             }
-            if ($this->isInlinePayment($order->getPayment()) && Mage::getModel('ops/config')->getSendInvoice() && Mage::getModel('ops/config')->getPaymentAction($order->getStoreId()) === Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE_CAPTURE) {
+            if ($this->isInlinePayment($order->getPayment()) && Mage::getModel('ops/config')->getSendInvoice()
+                && Mage::getModel('ops/config')->getPaymentAction($order->getStoreId())
+                === Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE_CAPTURE
+            ) {
                 foreach ($order->getInvoiceCollection() as $invoice) {
                     $this->sendInvoiceToCustomer($invoice);
                 }
@@ -705,18 +727,18 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      * Process Configured Payment Actions: Authorized, Default operation
      * just place order
      *
-     * @param Mage_Sales_Model_Order $order Order
-     * @param array $params Request params
+     * @param Mage_Sales_Model_Order $order  Order
+     * @param array                  $params Request params
      */
     protected function _processAuthorize($order, $params)
     {
         $status = $params['STATUS'];
-        if ($status == Netresearch_OPS_Model_Payment_Abstract::OPS_AWAIT_CUSTOMER_PAYMENT) {
+        if ($status == Netresearch_OPS_Model_Status::WAITING_CLIENT_PAYMENT) {
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PROCESSING,
                 Mage_Sales_Model_Order::STATE_PENDING_PAYMENT,
                 Mage::helper('ops')->__(
-                    'Waiting for payment. Ingenico Payment Services status: %s.', Mage::helper('ops')->getStatusText($status)
+                    'Waiting for payment. Ingenico ePayments status: %s.', Mage::helper('ops')->getStatusText($status)
                 )
             );
 
@@ -726,22 +748,24 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             ) {
                 $order->sendNewOrderEmail();
             }
-        } elseif ($status == Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED_WAITING) {
+        } elseif ($status == Netresearch_OPS_Model_Status::AUTHORIZATION_WAITING) {
             $order->setState(
                 Mage_Sales_Model_Order::STATE_PROCESSING,
                 Mage_Sales_Model_Order::STATE_PENDING_PAYMENT,
                 Mage::helper('ops')->__(
-                    'Authorization uncertain. Ingenico Payment Services status: %s.', Mage::helper('ops')->getStatusText($status)
+                    'Authorization uncertain. Ingenico ePayments status: %s.', Mage::helper('ops')->getStatusText($status)
                 )
             );
         } else {
             // for 3DS payments the order has to be retrieved from the payment review step
             if ($this->isInlinePayment($order->getPayment())
                 && 0 < strlen(trim($order->getPayment()->getAdditionalInformation('HTML_ANSWER')))
-                && $order->getPayment()->getAdditionalInformation('status') == Netresearch_OPS_Model_Payment_Abstract::OPS_AUTHORIZED
+                && $order->getPayment()->getAdditionalInformation('status') == Netresearch_OPS_Model_Status::AUTHORIZED
             ) {
-                
-                $order->getPayment()->setIsTransactionApproved(true)->registerPaymentReviewAction(Mage_Sales_Model_Order_Payment::REVIEW_ACTION_UPDATE, true)->save();
+
+                $order->getPayment()->setIsTransactionApproved(true)->registerPaymentReviewAction(
+                    Mage_Sales_Model_Order_Payment::REVIEW_ACTION_UPDATE, true
+                )->save();
             }
             if ($this->isRedirectPaymentMethod($order) === true
                 && $order->getEmailSent() != 1
@@ -749,14 +773,14 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
                 $order->sendNewOrderEmail();
             }
 
-            if(!$this->isPaypalSpecialStatus($order->getPayment()->getMethodInstance(), $status)) {
+            if (!$this->isPaypalSpecialStatus($order->getPayment()->getMethodInstance(), $status)) {
 
                 $payId = $params['PAYID'];
                 $order->setState(
                     Mage_Sales_Model_Order::STATE_PROCESSING,
                     Mage_Sales_Model_Order::STATE_PROCESSING,
                     Mage::helper('ops')->__(
-                        'Processed by Ingenico Payment Services. Payment ID: %s. Ingenico Payment Services status: %s.', $payId,
+                        'Processed by Ingenico ePayments. Payment ID: %s. Ingenico ePayments status: %s.', $payId,
                         Mage::helper('ops')->getStatusText($status)
                     )
                 );
@@ -776,7 +800,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     protected function isPaypalSpecialStatus($pm, $status)
     {
         return $pm instanceof Netresearch_OPS_Model_Payment_Paypal
-        && $status == Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_PROCESSING;
+        && $status == Netresearch_OPS_Model_Status::PAYMENT_PROCESSING;
     }
 
     /**
@@ -792,9 +816,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             return;
         }
         $transaction = Mage::getModel('sales/order_payment_transaction')
-                           ->getCollection()
-                           ->addAttributeToFilter('txn_id', $transactionId)
-                           ->getLastItem();
+            ->getCollection()
+            ->addAttributeToFilter('txn_id', $transactionId)
+            ->getLastItem();
         if (is_null($transaction->getId())) {
             return false;
         }
@@ -829,7 +853,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
         $cart->save();
 
         // add coupon code
-        $coupon  = $order->getCouponCode();
+        $coupon = $order->getCouponCode();
         $session = Mage::getSingleton('checkout/session');
         if (false == is_null($coupon)) {
             $session->getQuote()->setCouponCode($coupon)->save();
@@ -840,7 +864,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      * Save OPS Status to Payment
      *
      * @param Mage_Sales_Model_Order_Payment $payment
-     * @param array $params OPS-Response
+     * @param array                          $params OPS-Response
      *
      * @return void
      */
@@ -884,7 +908,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
     {
         if ($order instanceof Mage_Sales_Model_Order) {
             $message = Mage::helper('ops')->__(
-                'Unknown Ingenico Payment Services state for this order. Please check Ingenico Payment Services backend for this order.'
+                'Unknown Ingenico ePayments state for this order. Please check Ingenico ePayments backend for this order.'
             );
             if ($order->getState() == Mage_Sales_Model_Order::STATE_NEW) {
                 $order->setState(
@@ -921,7 +945,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      * Save the last used refund operation code to payment
      *
      * @param Mage_Sales_Model_Order_Payment $payment
-     * @param string $operationCode
+     * @param string                         $operationCode
      *
      * @return void
      */
@@ -932,12 +956,14 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             array(
                 Netresearch_OPS_Model_Payment_Abstract::OPS_REFUND_FULL,
                 Netresearch_OPS_Model_Payment_Abstract::OPS_REFUND_PARTIAL
-            ))
+            )
+        )
         ) {
             Mage::helper('ops/data')->log(
-                sprintf("set last refund operation '%s' code to payment for order '%s'",
-                        $operationCode,
-                        $payment->getOrder()->getIncrementId()
+                sprintf(
+                    "set last refund operation '%s' code to payment for order '%s'",
+                    $operationCode,
+                    $payment->getOrder()->getIncrementId()
                 )
             );
             $payment
@@ -959,7 +985,8 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
             array(
                 Netresearch_OPS_Model_Payment_Abstract::OPS_REFUND_FULL,
                 Netresearch_OPS_Model_Payment_Abstract::OPS_REFUND_PARTIAL
-            ))
+            )
+        )
         ) {
             /*
              * a further refund is possible if the transaction remains open, that means either the merchant
@@ -967,9 +994,10 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
              */
             $canRefund = ($refundOperationCode == Netresearch_OPS_Model_Payment_Abstract::OPS_REFUND_PARTIAL);
             Mage::helper('ops/data')->log(
-                sprintf("set canRefund to '%s' for payment of order '%s'",
-                        var_export($canRefund, true),
-                        $payment->getOrder()->getIncrementId()
+                sprintf(
+                    "set canRefund to '%s' for payment of order '%s'",
+                    var_export($canRefund, true),
+                    $payment->getOrder()->getIncrementId()
                 )
             );
             $payment
@@ -980,7 +1008,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
 
     /**
      * determine whether the payment supports only authorize or not
+     *
      * @param Mage_Sales_Model_Order $order
+     *
      * @return true . if so, false otherwise
      */
     protected function forceAuthorize(Mage_Sales_Model_Order $order)
@@ -1041,7 +1071,7 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      */
     public function isInlinePaymentWithOrderId(Mage_Payment_Model_Info $payment)
     {
-        return $this->isInlinePayment($payment) && (0 < strlen(trim($payment->getMethodInstance()->getConfigPaymentAction())));
+        return $this->isInlinePayment($payment) && $this->getConfig()->getInlineOrderReference() == Netresearch_OPS_Model_Payment_Abstract::REFERENCE_ORDER_ID;
     }
 
     /**
@@ -1053,11 +1083,12 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      */
     public function isInlinePayment(Mage_Payment_Model_Info $payment)
     {
-        $result         = false;
+        $result = false;
         $methodInstance = $payment->getMethodInstance();
         if ($methodInstance instanceof Netresearch_OPS_Model_Payment_DirectDebit
             || ($methodInstance instanceof Netresearch_OPS_Model_Payment_Cc
-                && ($methodInstance->hasBrandAliasInterfaceSupport($payment) || Mage::helper('ops/data')->isAdminSession()))
+                && ($methodInstance->hasBrandAliasInterfaceSupport($payment)
+                    || Mage::helper('ops/data')->isAdminSession()))
         ) {
             $result = true;
         }
@@ -1074,13 +1105,17 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
      */
     public function isInlinePaymentWithQuoteId(Mage_Payment_Model_Info $payment)
     {
-        return $this->isInlinePayment($payment) && (0 === strlen(trim($payment->getMethodInstance()->getConfigPaymentAction())));
+        return $this->isInlinePayment($payment)
+        && (0 === strlen(
+                trim($payment->getMethodInstance()->getConfigPaymentAction())
+            ));
     }
 
     /**
      * sets the invoices of an order to paid
      *
      * @param Mage_Sales_Model_Order $order
+     *
      * @return Netresearch_OPS_Helper_Payment
      */
     public function setInvoicesToPaid($order)
@@ -1116,11 +1151,12 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
 
     /**
      * Returns if the current payment status is an invalid one, namely if it is one of the following:
-     * Netresearch_OPS_Model_Payment_Abstract::OPS_INVALID,
-     * Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_CANCELED_BY_CUSTOMER,
-     * Netresearch_OPS_Model_Payment_Abstract::OPS_AUTH_REFUSED,
+     * Netresearch_OPS_Model_Payment_Abstract::INVALID_INCOMPLETE,
+     * Netresearch_OPS_Model_Payment_Abstract::CANCELED_BY_CUSTOMER,
+     * Netresearch_OPS_Model_Payment_Abstract::AUTHORISATION_DECLINED,
      *
      * @param $status
+     *
      * @return bool
      */
     public function isPaymentInvalid($status)
@@ -1128,9 +1164,9 @@ class Netresearch_OPS_Helper_Payment extends Mage_Core_Helper_Abstract
         return in_array(
             $status,
             array(
-                Netresearch_OPS_Model_Payment_Abstract::OPS_INVALID,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_PAYMENT_CANCELED_BY_CUSTOMER,
-                Netresearch_OPS_Model_Payment_Abstract::OPS_AUTH_REFUSED,
+                Netresearch_OPS_Model_Status::INVALID_INCOMPLETE,
+                Netresearch_OPS_Model_Status::CANCELED_BY_CUSTOMER,
+                Netresearch_OPS_Model_Status::AUTHORISATION_DECLINED,
             )
         );
     }
