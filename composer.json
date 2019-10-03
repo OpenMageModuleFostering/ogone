@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/Ogone",
+    "name": "OpenMageModuleFostering\/Ogone",
     "type": "magento-module",
     "license": "OSL3",
     "homepage": "",
     "description": "Ingenico ePayments",
     "authors": [
-    {
-        "name": "Michael L\u00fchr",
-        "email": "michael.luehr@netresearch.de"
-    }
-],
+        {
+            "name": "Michael L\u00fchr",
+            "email": "michael.luehr@netresearch.de"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
